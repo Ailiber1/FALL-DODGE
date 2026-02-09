@@ -282,10 +282,6 @@ body{background:radial-gradient(ellipse at 50% 40%,#002a10 0%,#001208 40%,#000a0
 <div id="lobby-screen" class="screen">
 <div class="panel" style="max-width:500px">
 <h2 id="lobby-title">ONLINE ROOM</h2>
-<div style="display:flex;gap:8px;margin:8px 0;align-items:center">
-<span style="font-size:11px;color:var(--text-dim)" id="lobby-link"></span>
-<button class="btn" style="width:auto;padding:6px 12px;font-size:11px" id="btn-copy-link">コピー</button>
-</div>
 <div class="lobby-players" id="lobby-players"></div>
 <div class="spacer"></div>
 <div id="lobby-rules" style="border:1px solid var(--neon-green-dim);padding:12px;margin:8px 0">
@@ -1760,21 +1756,20 @@ function joinRoom(){
 }
 function setupLobby(roomId){
   document.getElementById('lobby-title').textContent='ONLINE ROOM // '+roomId;
-  const url=window.location.origin+window.location.pathname+'?room='+roomId;
-  document.getElementById('lobby-link').textContent=url;
-  document.getElementById('btn-copy-link').onclick=()=>{navigator.clipboard.writeText(url).then(()=>showToast(currentLang==='ja'?'URLをコピーしました':'URL copied'));};
   document.getElementById('btn-start-game').style.display='none';
   const roomRef=database.ref('rooms/'+roomId);
   // --- Rule Selection UI ---
+  const isHost=GS.isHost||GS.playerIndex===0;
+  GS.isHost=isHost;
   const hostTag=document.getElementById('lobby-rules-host-tag');
   const readonlyMsg=document.getElementById('lobby-rules-readonly');
-  hostTag.style.display=GS.isHost?'inline':'none';
-  readonlyMsg.style.display=GS.isHost?'none':'block';
+  hostTag.style.display=isHost?'inline':'none';
+  readonlyMsg.style.display=isHost?'none':'block';
   // Build mode buttons
   const modeContainer=document.getElementById('lobby-mode-buttons');modeContainer.innerHTML='';
   [{key:'individual',label:'multi_individual'},{key:'team',label:'multi_team'},{key:'coop',label:'multi_coop'}].forEach(m=>{
     const b=document.createElement('button');b.className='btn'+(GS.multiMode===m.key?' selected':'');b.textContent=t(m.label);b.dataset.mode=m.key;
-    if(GS.isHost){
+    if(isHost){
       b.addEventListener('click',()=>{
         GS.multiMode=m.key;
         modeContainer.querySelectorAll('.btn').forEach(x=>x.classList.remove('selected'));
@@ -1788,7 +1783,7 @@ function setupLobby(roomId){
   const diffContainer=document.getElementById('lobby-diff-buttons');diffContainer.innerHTML='';
   ['easy','normal','hard'].forEach(d=>{
     const b=document.createElement('button');b.className='btn'+(GS.difficulty===d?' selected':'');b.textContent=t('difficulty_'+d);b.dataset.diff=d;
-    if(GS.isHost){
+    if(isHost){
       b.addEventListener('click',()=>{
         GS.difficulty=d;
         diffContainer.querySelectorAll('.btn').forEach(x=>x.classList.remove('selected'));
@@ -1830,9 +1825,10 @@ function setupLobby(roomId){
       container.appendChild(div);
     }
     const playerCount=Object.keys(players).length;
-    if(GS.isHost&&playerCount>=2)document.getElementById('btn-start-game').style.display='block';
-    else if(GS.isHost)document.getElementById('btn-start-game').style.display='none';
-    if(GS.multiMode==='team'&&playerCount<4)document.getElementById('btn-start-game').style.display='none';
+    if(isHost){
+      document.getElementById('btn-start-game').style.display='block';
+      if(GS.multiMode==='team'&&playerCount<4)document.getElementById('btn-start-game').style.display='none';
+    }
   });
   roomRef.child('status').on('value',snap=>{if(snap.val()==='playing'&&!GS.gameActive)startMultiGame();});
   document.getElementById('btn-start-game').onclick=()=>{roomRef.child('status').set('playing');};
