@@ -349,10 +349,18 @@ function getDeviceId(){let id=localStorage.getItem('fall_dodge_device_id');if(!i
 const SoundMgr = {
   bgm:null, bgmEnabled:true, seEnabled:true, audioCtx:null,
   getCtx(){if(!this.audioCtx)this.audioCtx=new(window.AudioContext||window.webkitAudioContext)();return this.audioCtx;},
+  pendingBGM:null,
   playBGM(url){
     if(this.bgm){this.bgm.pause();this.bgm.currentTime=0;}
     this.bgm=new Audio(url);this.bgm.loop=true;this.bgm.volume=0.4;
-    if(this.bgmEnabled)this.bgm.play().catch(()=>{});
+    this.pendingBGM=null;
+    const p=this.bgm.play();
+    if(p)p.catch(()=>{this.pendingBGM=url;});
+  },
+  resumePendingBGM(){
+    if(!this.pendingBGM)return;
+    if(this.bgm){this.bgm.play().catch(()=>{});}
+    this.pendingBGM=null;
   },
   stopBGM(){if(this.bgm){this.bgm.pause();this.bgm.currentTime=0;}},
   changeBGMForStage(stage){
@@ -1905,6 +1913,9 @@ function init(){
   setTimeout(goTitle,2500);
   document.getElementById('splash-screen').addEventListener('click',goTitle);
   setupInputs();setupUI();
+  // Resume BGM on first user interaction (browser autoplay policy)
+  const unlockAudio=()=>{SoundMgr.resumePendingBGM();document.removeEventListener('click',unlockAudio);document.removeEventListener('touchstart',unlockAudio);document.removeEventListener('keydown',unlockAudio);};
+  document.addEventListener('click',unlockAudio);document.addEventListener('touchstart',unlockAudio);document.addEventListener('keydown',unlockAudio);
 }
 window.addEventListener('DOMContentLoaded',init);
 </script>
