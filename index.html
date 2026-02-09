@@ -962,29 +962,45 @@ const Commentary = {
 const CPUBrain = {
   decide(cpu,objects,powerUps,level){
     if(level==='rookie'){
-      // Rookie: reacts to nearby threats, sometimes wanders randomly
-      const near=objects.filter(o=>!o.bounced&&o.y<groundY&&o.y>groundY-250&&Math.abs(o.x+o.w/2-cpu.x)<50);
+      // Rookie: reacts to nearby threats, patrols actively
+      const near=objects.filter(o=>!o.bounced&&o.y<groundY&&o.y>groundY-350&&Math.abs(o.x+o.w/2-cpu.x)<70);
       if(near.length===0){
-        // Wander toward center occasionally
-        if(Math.random()<0.3)return cpu.x<W*0.3?'right':cpu.x>W*0.7?'left':'stop';
+        // Active patrol
+        if(cpu.x<W*0.25)return 'right';
+        if(cpu.x>W*0.75)return 'left';
+        if(Math.random()<0.4)return Math.random()>0.5?'left':'right';
         return 'stop';
       }
       const n=near.reduce((a,b)=>a.y>b.y?a:b);
-      // 80% chance to dodge correctly
-      if(Math.random()<0.8)return (n.x+n.w/2)>cpu.x?'left':'right';
-      return 'stop';
+      // 90% chance to dodge correctly
+      if(Math.random()<0.9)return (n.x+n.w/2)>cpu.x?'left':'right';
+      return Math.random()>0.5?'left':'right';
     }
     if(level==='normal'){
-      // Normal: reacts to wider threat range, considers multiple threats
-      const threats=objects.filter(o=>!o.bounced&&o.y<groundY&&o.y>groundY-350&&Math.abs(o.x+o.w/2-cpu.x)<80);
+      // Normal: danger map lite - considers multiple threats with prediction
+      const cpuHitW=30;
+      const threats=objects.filter(o=>!o.bounced&&o.y<groundY&&o.y>groundY-450);
       if(threats.length===0){
-        // Patrol toward center for safety
         if(cpu.x<W*0.2)return 'right';
         if(cpu.x>W*0.8)return 'left';
+        // Collect nearby power-ups
+        const nearPU=powerUps.find(p=>Math.abs(p.x+p.w/2-cpu.x)<120&&p.y>groundY-200&&p.y<groundY);
+        if(nearPU){const puX=nearPU.x+nearPU.w/2;return puX>cpu.x?'right':'left';}
         return 'stop';
       }
-      const nearest=threats.reduce((a,b)=>a.y>b.y?a:b);
-      return (nearest.x+nearest.w/2)>cpu.x?'left':'right';
+      // Check multiple threats and pick best direction
+      let leftDanger=0,rightDanger=0;
+      for(const o of threats){
+        const ox=o.x+o.w/2;
+        const dist=Math.abs(ox-cpu.x);
+        if(dist>120)continue;
+        const urgency=1-(groundY-o.y-o.h)/450;
+        const w=(o.isBoss?3:1)*Math.max(0,urgency);
+        if(ox<=cpu.x)leftDanger+=w;else rightDanger+=w;
+      }
+      if(leftDanger>rightDanger)return 'right';
+      if(rightDanger>leftDanger)return 'left';
+      return cpu.x<W/2?'right':'left';
     }
     // expert: predict landing positions of ALL objects, find safest zone
     const cpuHitW=30;
@@ -993,10 +1009,10 @@ const CPUBrain = {
       if(o.bounced||o.y>groundY)continue;
       const timeToGround=(groundY-o.y-o.h)/Math.max(o.speed,1);
       if(timeToGround<0||timeToGround>120)continue;
-      const landX=o.x+o.w/2;
+      const landX=o.x+o.w/2+(o.windDrift||0)*timeToGround;
       const urgency=Math.max(0,1-timeToGround/120);
-      const dangerRadius=o.w/2+cpuHitW+10;
-      const weight=(1+urgency*4)*(o.isBoss?3:1);
+      const dangerRadius=o.w/2+cpuHitW+15;
+      const weight=(1+urgency*5)*(o.isBoss?4:1);
       const cIdx=Math.floor(landX/10);
       const rIdx=Math.ceil(dangerRadius/10);
       for(let i=Math.max(0,cIdx-rIdx);i<Math.min(dangerMap.length,cIdx+rIdx+1);i++){
@@ -1009,21 +1025,21 @@ const CPUBrain = {
     for(let i=1;i<dangerMap.length-1;i++){
       const x=i*10;
       const d=dangerMap[i];
-      const distPenalty=Math.abs(x-cpu.x)*0.002;
+      const distPenalty=Math.abs(x-cpu.x)*0.001;
       const score=d+distPenalty;
       if(score<bestSafety){bestSafety=score;bestX=x;}
     }
     // Collect nearby power-ups if safe
-    const nearPU=powerUps.find(p=>Math.abs(p.x+p.w/2-cpu.x)<100&&p.y>groundY-180&&p.y<groundY);
+    const nearPU=powerUps.find(p=>Math.abs(p.x+p.w/2-cpu.x)<130&&p.y>groundY-200&&p.y<groundY);
     if(nearPU){
       const puX=nearPU.x+nearPU.w/2;
       const puIdx=Math.floor(puX/10);
-      if((dangerMap[puIdx]||0)<0.5){
-        if(Math.abs(puX-cpu.x)<8)return 'stop';
+      if((dangerMap[puIdx]||0)<0.3){
+        if(Math.abs(puX-cpu.x)<6)return 'stop';
         return puX>cpu.x?'right':'left';
       }
     }
-    if(Math.abs(bestX-cpu.x)<8)return 'stop';
+    if(Math.abs(bestX-cpu.x)<6)return 'stop';
     return bestX>cpu.x?'right':'left';
   }
 };
@@ -1193,7 +1209,7 @@ function gameLoop(){
     }
   }
   // Move CPU players: decide direction periodically, move every frame
-  const cpuSpdMul={rookie:3,normal:4.5,expert:7};
+  const cpuSpdMul={rookie:4.5,normal:6,expert:8.5};
   GS.cpuPlayers.forEach(cpu=>{
     if(!cpu.alive)return;
     // Update decision at reaction interval
@@ -1531,11 +1547,13 @@ function getSuffix(n){return n===1?'st':n===2?'nd':n===3?'rd':'th';}
 function submitScore(){
   if(!GS.username||GS.isGuest)return;
   const elapsed=Date.now()-GS.gameStartTime;
-  const maxPossible=Math.floor(elapsed/300);
+  // Anti-cheat: allow combo multiplier (max x10) + movement scoring
+  const maxPossible=Math.floor(elapsed/300)*10+(GS.isSecretStage?Math.floor(elapsed/50):0);
   if(GS.score>maxPossible)return;
   database.ref('rankings').push({
     username:GS.username,score:GS.score,difficulty:GS.difficulty,
     gameMode:GS.gameMode,stage:GS.currentStage,elapsed,
+    isSecretStage:GS.isSecretStage||false,
     timestamp:firebase.database.ServerValue.TIMESTAMP
   });
 }
@@ -1611,7 +1629,7 @@ function retrySameStage(){
   const sd=STAGE_DIFFICULTY[stage];
   if(sd){GS.currentFallSpeed=sd.fallSpeed;GS.currentSpawnInterval=sd.spawnInterval;}
   GS.cpuPlayers=[];
-  const delays={rookie:500,normal:200,expert:40};
+  const delays={rookie:300,normal:120,expert:30};
   savedCpuSetup.forEach((lv,i)=>{
     if(!lv)return;
     GS.cpuPlayers.push({pIdx:i+1,x:200+i*150,alive:true,level:lv,
@@ -1662,7 +1680,7 @@ function startSoloGame(){
   GS.gameMode='normal';GS.difficulty='normal';
   GS.isMulti=false;GS.isHost=true;
   GS.cpuPlayers=[];
-  const delays={rookie:500,normal:200,expert:40};
+  const delays={rookie:300,normal:120,expert:30};
   cpuSetup.forEach((lv,i)=>{
     if(!lv)return;
     GS.cpuPlayers.push({pIdx:i+1,x:200+i*150,alive:true,level:lv,
@@ -1885,7 +1903,10 @@ function loadRankings(mode){
     const entries=[];snap.forEach(c=>{const v=c.val();entries.push(v);});
     const filtered=entries.filter(e=>mode==='scoreAttack'?e.gameMode==='scoreAttack':e.gameMode!=='scoreAttack');
     filtered.sort((a,b)=>b.score-a.score);
-    const top10=filtered.slice(0,10);
+    // Deduplicate: keep only the highest score per username
+    const seen=new Set();
+    const unique=filtered.filter(e=>{if(!e.username||seen.has(e.username))return false;seen.add(e.username);return true;});
+    const top10=unique.slice(0,10);
     if(!top10.length){list.innerHTML='<div style="color:var(--text-dim)">まだランキングデータがありません</div>';return;}
     list.innerHTML='';top10.forEach((e,i)=>{
       const div=document.createElement('div');div.className='ranking-entry';
@@ -1918,8 +1939,8 @@ function setupInputs(){
       return;
     }
     if(!GS.gameActive)return;
-    if(e.key==='ArrowLeft'||e.key==='a')GS.moveLeft=true;
-    if(e.key==='ArrowRight'||e.key==='d')GS.moveRight=true;
+    if(e.key==='ArrowLeft'||e.key==='a'){e.preventDefault();GS.moveLeft=true;}
+    if(e.key==='ArrowRight'||e.key==='d'){e.preventDefault();GS.moveRight=true;}
     if(e.key===' '||e.key==='Shift'){e.preventDefault();Dash.execute(GS.moveLeft?-1:GS.moveRight?1:1);}
   });
   document.addEventListener('keyup',e=>{
@@ -1980,7 +2001,21 @@ function setupUI(){
   });
   document.getElementById('btn-join-room').addEventListener('click',()=>{SoundMgr.playSE('click');joinRoom();});
   document.getElementById('btn-start-solo').addEventListener('click',()=>{SoundMgr.playSE('click');startSoloGame();});
-  document.getElementById('btn-score-attack').addEventListener('click',()=>{SoundMgr.playSE('click');startScoreAttack();});
+  document.getElementById('btn-score-attack').addEventListener('click',async()=>{
+    SoundMgr.playSE('click');
+    if(GS.username&&!GS.isGuest){startScoreAttack();return;}
+    const name=document.getElementById('username-input').value.trim();
+    if(!name){
+      document.getElementById('username-error').style.display='block';
+      document.getElementById('username-error').textContent=currentLang==='ja'?'スコアアタックにはユーザー名の登録が必要です':'Username required for Score Attack';
+      SoundMgr.playSE('error');return;
+    }
+    try{await registerUser(name);GS.username=name;GS.isGuest=false;localStorage.setItem('fd_username',name);
+      showToast(currentLang==='ja'?'登録完了: '+name:'Registered: '+name);document.getElementById('username-error').style.display='none';
+      startScoreAttack();
+    }catch(err){if(err==='taken'){document.getElementById('username-error').style.display='block';
+      document.getElementById('username-error').textContent=currentLang==='ja'?'このネームは他のユーザーが使用中です':'This name is already taken';SoundMgr.playSE('error');}}
+  });
   document.getElementById('btn-pause').addEventListener('click',()=>{SoundMgr.playSE('click');pauseGame();});
   document.getElementById('btn-resume').addEventListener('click',()=>{SoundMgr.playSE('click');resumeGame();});
   document.getElementById('btn-quit-game').addEventListener('click',()=>{SoundMgr.playSE('click');quitGame();});
