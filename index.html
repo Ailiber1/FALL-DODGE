@@ -330,7 +330,7 @@ const database = firebase.database();
 // ===== i18n =====
 const i18n = {
   ja:{catchcopy:'一瞬の判断が、生存を決める',btn_register_play:'登録してゲームを始める',btn_guest_play:'▶ 登録しないでゲームを始める',btn_multi:'マルチプレイ（最大4人）',btn_rules:'ルール説明を見る',btn_ranking:'ランキングを見る',difficulty_easy:'簡単',difficulty_normal:'普通',difficulty_hard:'難しい',game_over:'GAME OVER',game_set:'GAME SET!',winner:'勝者',score_label:'スコア',rematch:'再戦',back_to_title:'タイトルに戻る',retry:'もう一度プレイ',waiting:'待機中...',game_start:'ゲーム開始',disconnected:'さんが退席しました',near_miss:'NEAR MISS!',combo:'COMBO!',fever:'FEVER!',shield_break:'SHIELD BREAK!',stage_label:'ステージ',weather_rain:'雨',weather_thunder:'雷',weather_storm:'嵐',bgm_on:'BGM: ON',bgm_off:'BGM: OFF',se_on:'SE: ON',se_off:'SE: OFF',
-    rule_text:'<b>FALL DODGE ルール</b><br><br>・上空から落下物（日用品・工具）が降ってくる<br>・← → キーで左右移動し、落下物を回避<br>・Shift / Space でダッシュ（短距離無敵移動）<br>・落下物に当たったらゲームオーバー<br>・回避するとスコア+1、ニアミスでボーナス<br>・連続回避でコンボ倍率アップ<br>・★パワーアップアイテムで一時的に強化<br>・時間経過で難易度上昇<br>・ステージごとに背景とBGMが変化<br><br><b>ステージモード</b><br>・ステージ1〜5を順番にクリア<br>・各ステージ制限時間2分（ステージ5は3分）<br>・時間内に生き残ればステージクリア<br><br><b>🏆 スコアアタック</b><br>・時間制限なし！高難易度固定でスコアを競う<br>・やられるまでひたすらスコアを稼ぐ<br>・登録ユーザーのスコアはランキングに反映<br>・上位TOP10のみ表示<br><br><b>パワーアップ</b><br>🛡️ シールド: 被弾1回無効<br>⚡ スピード: 移動速度2倍(5秒)<br>🔽 スロー: 落下速度半減(3秒)<br>🔲 縮小: 当たり判定半減(5秒)<br>🔺 巨大化: 当たり判定1.8倍(6秒) ※デバフ<br><br><b>マルチプレイ</b><br>・最大4人同時対戦<br>・最後まで生き残った人が勝利<br>・💀妨害アイテムで他プレイヤーに追加落下物<br><br><b style="color:#ff4444">🔒 隠しステージ</b><br>・ファイナルステージクリアで解放<br>・通常の回避スコアに加え、<b>移動量に応じたボーナスポイント</b>が加算<br>・止まらず動き続けることが高スコアのカギ<br>・制限時間4分 / 最高難度',
+    rule_text:'<b>FALL DODGE ルール</b><br><br>・上空から落下物（日用品・工具）が降ってくる<br>・← → キーで左右移動し、落下物を回避<br>・Shift / Space でダッシュ（短距離無敵移動）<br>・落下物に当たったらゲームオーバー<br>・回避するとスコア+1、ニアミスでボーナス<br>・連続回避でコンボ倍率アップ<br>・★パワーアップアイテムで一時的に強化<br>・時間経過で難易度上昇<br>・ステージごとに背景とBGMが変化<br><br><b>ステージモード</b><br>・ステージ1〜5を順番にクリア<br>・各ステージ制限時間2分（ステージ5は3分）<br>・時間内に生き残ればステージクリア<br><br><b>🏆 スコアアタック</b><br>・時間制限なし！高難易度固定でスコアを競う<br>・やられるまでひたすらスコアを稼ぐ<br>・登録ユーザーのスコアはランキングに反映<br>・上位TOP10のみ表示<br><br><b>パワーアップ</b><br>🛡️ シールド: 被弾1回無効<br>⚡ スピード: 移動速度2倍(5秒)<br>🔽 スロー: 落下速度半減(3秒)<br>🔲 縮小: 当たり判定半減(5秒)<br>🔺 巨大化: 当たり判定1.8倍(6秒) ※デバフ<br><br><b>マルチプレイ</b><br>・最大4人同時対戦<br>・最後まで生き残った人が勝利<br>・💀妨害アイテムで他プレイヤーに追加落下物',
     c_start:'ゲームスタート！生き延びろ！',c_first:'最初の回避成功！いい滑り出しだ',c_combo2:'コンボ発動！この調子だ',c_combo5:'フィーバー突入！止まらない！',c_combo10:'MAX!! 神回避の領域だ！',c_nearmiss:'危ない！紙一重だった！',c_shield:'シールドGET！保険をかけた',c_shield_break:'シールド消滅！残りは腕だけだ',c_boss:'巨大落下物接近！気をつけろ！',c_boss_dodge:'ナイス！巨大物を回避した！',c_stage:'ステージ{n}突入！',c_score100:'100回避達成！まだまだ行ける！',c_1min:'1分経過！タフな生存者だ',c_2min:'2分経過！もはや伝説級だ',c_pout:'P{n}が脱落！残り{r}人の戦い！',c_final:'一騎打ち！最後の勝負だ！',c_storm:'嵐が来た！落下物が斜めに飛ぶぞ',
     c_edge_left:'壁際は危険だ！中央に戻れ！',c_edge_right:'端に寄りすぎだ！逃げ場がなくなるぞ！',c_center:'中央キープ！いいポジションだ',c_dense:'落下物の嵐だ！集中しろ！',c_calm:'静かだ…次の波に備えろ',c_dash_master:'ダッシュの使い方が上手い！',c_no_move:'止まっていて大丈夫か？動け！',c_survive_dense:'大量の落下物を捌いた！見事だ！',c_lucky:'ギリギリの回避が続く…強運の持ち主だ',c_speedup:'落下速度が上がってきた！気をつけろ',c_multi_dodge:'連続ニアミス！冷や汗ものだ！',c_power_rush:'パワーアップで無双状態だ！',c_rain_comment:'雨が降ってきた…視界に注意',c_long_combo:'コンボが途切れない！集中力が凄い',c_close_call:'今のは本当に危なかった！',c_wall_hug:'壁に張り付くな！挟まれるぞ！',c_smooth:'華麗な立ち回りだ！',c_dodge_rain:'雨の中での回避…難易度アップだ',c_comeback:'持ち直した！まだまだいける！',c_enlarge:'巨大化した！当たり判定が広がるぞ…！',
     mode_normal:'ノーマル',mode_survival:'サバイバル',mode_timeAttack:'タイムアタック',mode_bossRush:'ボスラッシュ',mode_reverse:'リバース',mode_coop:'協力モード',
@@ -345,7 +345,7 @@ const i18n = {
     secret_popup_title:'SECRET UNLOCKED'
   },
   en:{catchcopy:'A split-second decision determines survival.',btn_register_play:'Register & Play',btn_guest_play:'▶ Play as Guest',btn_multi:'Multiplayer (up to 4)',btn_rules:'How to Play',btn_ranking:'Rankings',difficulty_easy:'Easy',difficulty_normal:'Normal',difficulty_hard:'Hard',game_over:'GAME OVER',game_set:'GAME SET!',winner:'WINNER',score_label:'SCORE',rematch:'Rematch',back_to_title:'Back to Title',retry:'Play Again',waiting:'Waiting...',game_start:'Start Game',disconnected:' disconnected',near_miss:'NEAR MISS!',combo:'COMBO!',fever:'FEVER!',shield_break:'SHIELD BREAK!',stage_label:'STAGE',weather_rain:'Rain',weather_thunder:'Thunder',weather_storm:'Storm',bgm_on:'BGM: ON',bgm_off:'BGM: OFF',se_on:'SE: ON',se_off:'SE: OFF',
-    rule_text:'<b>FALL DODGE Rules</b><br><br>• Objects fall from above<br>• Use ← → to move and dodge<br>• Shift/Space to dash (short invincible move)<br>• Hit = Game Over<br>• Dodge = Score+1, Near Miss = Bonus<br>• Consecutive dodges increase combo multiplier<br>• ★ Power-ups give temporary boosts<br>• Difficulty increases over time<br>• Background & BGM change per stage<br><br><b>Stage Mode</b><br>• Clear Stages 1-5 in order<br>• 2 min per stage (Stage 5 is 3 min)<br>• Survive the time to advance<br><br><b>🏆 Score Attack</b><br>• No time limit! Fixed high difficulty<br>• Keep dodging to rack up your score<br>• Registered users scores appear in rankings<br>• Only top 10 scores displayed<br><br><b>Power-ups</b><br>🛡️ Shield: Block 1 hit<br>⚡ Speed: 2x speed (5s)<br>🔽 Slow: Half fall speed (3s)<br>🔲 Shrink: Half hitbox (5s)<br>🔺 Enlarge: 1.8x hitbox (6s) *Debuff*<br><br><b>Multiplayer</b><br>• Up to 4 players online<br>• Last one standing wins<br>• 💀 Sabotage adds objects to others<br><br><b style="color:#ff4444">🔒 Hidden Stage</b><br>• Unlocked by clearing the Final Stage<br>• <b>Movement distance grants bonus points</b> on top of dodge score<br>• Keep moving to maximize your score<br>• 4 min time limit / Maximum difficulty',
+    rule_text:'<b>FALL DODGE Rules</b><br><br>• Objects fall from above<br>• Use ← → to move and dodge<br>• Shift/Space to dash (short invincible move)<br>• Hit = Game Over<br>• Dodge = Score+1, Near Miss = Bonus<br>• Consecutive dodges increase combo multiplier<br>• ★ Power-ups give temporary boosts<br>• Difficulty increases over time<br>• Background & BGM change per stage<br><br><b>Stage Mode</b><br>• Clear Stages 1-5 in order<br>• 2 min per stage (Stage 5 is 3 min)<br>• Survive the time to advance<br><br><b>🏆 Score Attack</b><br>• No time limit! Fixed high difficulty<br>• Keep dodging to rack up your score<br>• Registered users scores appear in rankings<br>• Only top 10 scores displayed<br><br><b>Power-ups</b><br>🛡️ Shield: Block 1 hit<br>⚡ Speed: 2x speed (5s)<br>🔽 Slow: Half fall speed (3s)<br>🔲 Shrink: Half hitbox (5s)<br>🔺 Enlarge: 1.8x hitbox (6s) *Debuff*<br><br><b>Multiplayer</b><br>• Up to 4 players online<br>• Last one standing wins<br>• 💀 Sabotage adds objects to others',
     c_start:'Game start! Survive!',c_first:'First dodge! Good start!',c_combo2:'Combo activated! Keep it up!',c_combo5:'FEVER mode! Unstoppable!',c_combo10:'MAX!! Godlike dodging!',c_nearmiss:'Close call! That was tight!',c_shield:'Shield acquired! Safety net!',c_shield_break:'Shield gone! Skill only now!',c_boss:'BOSS incoming! Watch out!',c_boss_dodge:'Nice! Boss dodged!',c_stage:'Stage {n}!',c_score100:'100 dodges! Still going!',c_1min:'1 minute survived! Tough!',c_2min:'2 minutes! Legendary!',c_pout:'P{n} is out! {r} remain!',c_final:'1v1! Final showdown!',c_storm:'Storm! Objects flying sideways!',
     c_edge_left:'Too close to the wall! Move to center!',c_edge_right:'Hugging the edge! You\'ll get trapped!',c_center:'Holding center! Good position!',c_dense:'Object storm incoming! Focus!',c_calm:'It\'s quiet... brace for the next wave',c_dash_master:'Great use of dash!',c_no_move:'Standing still? Move it!',c_survive_dense:'Survived that barrage! Impressive!',c_lucky:'Lucky dodges keep coming!',c_speedup:'Fall speed increasing! Stay sharp!',c_multi_dodge:'Multiple near misses! Heart-pounding!',c_power_rush:'Powered up and dominating!',c_rain_comment:'Rain is falling... watch your vision',c_long_combo:'Combo unbroken! Insane focus!',c_close_call:'That was WAY too close!',c_wall_hug:'Stop hugging the wall! You\'ll get cornered!',c_smooth:'Smooth moves! Beautiful dodging!',c_dodge_rain:'Dodging in the rain... extra challenge!',c_comeback:'Back on track! Keep going!',c_enlarge:'Enlarged! Bigger hitbox... be careful!',
     mode_normal:'Normal',mode_survival:'Survival',mode_timeAttack:'Time Attack',mode_bossRush:'Boss Rush',mode_reverse:'Reverse',mode_coop:'Co-op',
@@ -1968,13 +1968,20 @@ function setupUI(){
   document.getElementById('btn-guest').addEventListener('click',()=>{GS.username=null;GS.isGuest=true;SoundMgr.playSE('click');setupSoloModal();showModal('mode-modal');});
   document.getElementById('btn-multi').addEventListener('click',async()=>{
     SoundMgr.playSE('click');
-    if(GS.username&&!GS.isGuest){setupMultiModal();showModal('multi-modal');return;}
-    const name=document.getElementById('username-input').value.trim();
-    if(!name){document.getElementById('username-error').style.display='block';document.getElementById('username-error').textContent='マルチプレイにはユーザー名の登録が必要です';SoundMgr.playSE('error');return;}
-    try{await registerUser(name);GS.username=name;GS.isGuest=false;localStorage.setItem('fd_username',name);
-      showToast('登録完了: '+name);document.getElementById('username-error').style.display='none';
+    const nameField=document.getElementById('username-input');
+    const nameVal=nameField.value.trim();
+    // Require a name visible in the input field
+    if(!nameVal){
+      document.getElementById('username-error').style.display='block';
+      document.getElementById('username-error').textContent=currentLang==='ja'?'マルチプレイにはユーザー名の登録が必要です':'Username required for Multiplayer';
+      SoundMgr.playSE('error');return;
+    }
+    if(GS.username===nameVal&&!GS.isGuest){setupMultiModal();showModal('multi-modal');return;}
+    try{await registerUser(nameVal);GS.username=nameVal;GS.isGuest=false;localStorage.setItem('fd_username',nameVal);
+      showToast((currentLang==='ja'?'登録完了: ':'Registered: ')+nameVal);document.getElementById('username-error').style.display='none';
       setupMultiModal();showModal('multi-modal');
-    }catch(err){if(err==='taken'){document.getElementById('username-error').style.display='block';document.getElementById('username-error').textContent='このネームは他のユーザーが使用中です';SoundMgr.playSE('error');}}
+    }catch(err){if(err==='taken'){document.getElementById('username-error').style.display='block';
+      document.getElementById('username-error').textContent=currentLang==='ja'?'このネームは他のユーザーが使用中です':'This name is already taken';SoundMgr.playSE('error');}}
   });
   document.getElementById('btn-rules').addEventListener('click',()=>{SoundMgr.playSE('click');document.getElementById('rule-content').innerHTML=t('rule_text');showModal('rule-modal');});
   document.getElementById('btn-ranking').addEventListener('click',()=>{SoundMgr.playSE('click');loadRankings();showModal('ranking-modal');});
@@ -2003,15 +2010,16 @@ function setupUI(){
   document.getElementById('btn-start-solo').addEventListener('click',()=>{SoundMgr.playSE('click');startSoloGame();});
   document.getElementById('btn-score-attack').addEventListener('click',async()=>{
     SoundMgr.playSE('click');
-    if(GS.username&&!GS.isGuest){startScoreAttack();return;}
-    const name=document.getElementById('username-input').value.trim();
-    if(!name){
+    const nameField=document.getElementById('username-input');
+    const nameVal=nameField.value.trim();
+    if(!nameVal){
       document.getElementById('username-error').style.display='block';
       document.getElementById('username-error').textContent=currentLang==='ja'?'スコアアタックにはユーザー名の登録が必要です':'Username required for Score Attack';
       SoundMgr.playSE('error');return;
     }
-    try{await registerUser(name);GS.username=name;GS.isGuest=false;localStorage.setItem('fd_username',name);
-      showToast(currentLang==='ja'?'登録完了: '+name:'Registered: '+name);document.getElementById('username-error').style.display='none';
+    if(GS.username===nameVal&&!GS.isGuest){startScoreAttack();return;}
+    try{await registerUser(nameVal);GS.username=nameVal;GS.isGuest=false;localStorage.setItem('fd_username',nameVal);
+      showToast((currentLang==='ja'?'登録完了: ':'Registered: ')+nameVal);document.getElementById('username-error').style.display='none';
       startScoreAttack();
     }catch(err){if(err==='taken'){document.getElementById('username-error').style.display='block';
       document.getElementById('username-error').textContent=currentLang==='ja'?'このネームは他のユーザーが使用中です':'This name is already taken';SoundMgr.playSE('error');}}
