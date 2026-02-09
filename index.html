@@ -1612,6 +1612,9 @@ function endGame(hit,cleared){
     GS.weatherShakeFrames=5;render();
   }
   if(GS.isMulti){
+    // Update local state immediately so checkMultiEnd sees it
+    if(GS.players[GS.playerIndex])GS.players[GS.playerIndex].alive=false;
+    if(GS.players[GS.playerIndex])GS.players[GS.playerIndex].score=GS.score;
     SyncLayer.reportDeath(GS.playerIndex,GS.score);
     // Check if game should end
     setTimeout(()=>checkMultiEnd(),500);
@@ -1633,7 +1636,10 @@ function checkMultiEnd(){
   else setTimeout(()=>checkMultiEnd(),1000);
 }
 
+let resultShown=false;
 function showResult(){
+  if(resultShown)return;
+  resultShown=true;
   SoundMgr.stopBGM();
   const box=document.getElementById('result-box');
   if(GS.isMulti){
@@ -1790,6 +1796,7 @@ function resizeCanvas(){
 
 // ===== Reset Game State =====
 function resetGameState(){
+  resultShown=false;
   Object.assign(GS,{score:0,comboCount:0,comboMultiplier:1,maxCombo:0,currentStage:1,weather:'clear',isAlive:true,
     playerX:50,moveLeft:false,moveRight:false,dashActive:false,dashInvincible:false,dashLastTime:0,
     shield:false,speedBoost:false,slowMotion:false,invincible:false,enlarge:false,activePowerUps:[],
@@ -2094,11 +2101,6 @@ function setupLobby(roomId){
   document.getElementById('btn-start-game').onclick=()=>{roomRef.child('status').set('playing');};
   document.getElementById('btn-leave-lobby').onclick=()=>{cleanupRoom(roomId,GS.playerIndex);SyncLayer.disconnect();GS.isMulti=false;GS.roomId=null;showScreen('title');};
   roomRef.child('players/'+GS.playerIndex).onDisconnect().remove();
-  // If all players disconnect, remove the entire room
-  roomRef.child('players').on('value',snap=>{
-    const remaining=snap.val();
-    if(!remaining||Object.keys(remaining).length===0){roomRef.remove();}
-  });
 }
 function startMultiGame(){
   resetGameState();GS.isMulti=true;GS.cpuPlayers=[];
@@ -2139,7 +2141,7 @@ function startMultiGame(){
     } else {
       if(alive.length<=1)gameEnded=true;
     }
-    if(gameEnded&&GS.gameActive){GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);setTimeout(()=>showResult(),500);}
+    if(gameEnded&&!resultShown){GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);setTimeout(()=>showResult(),500);}
   });
   showCountdown(()=>{
     GS.gameStartTime=Date.now();GS.gameActive=true;
