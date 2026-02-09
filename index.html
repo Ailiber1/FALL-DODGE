@@ -1087,7 +1087,7 @@ const SyncLayer = {
     if(this.roomRef)this.roomRef.child('players/'+idx).update({alive:false,score,deathTimestamp:firebase.database.ServerValue.TIMESTAMP});
   },
   updateFallingObjects(objs){
-    if(this.roomRef)this.roomRef.child('fallingObjects').set(objs.map(o=>({x:o.x,y:o.y,w:o.w,h:o.h,typeId:o.typeId,color:o.color,rotation:o.rotation||0,speed:o.speed,isBoss:o.isBoss||false})));
+    if(this.roomRef)this.roomRef.child('fallingObjects').set(objs.filter(o=>o.typeId!=='wall').map(o=>({x:o.x,y:o.y,w:o.w,h:o.h,typeId:o.typeId,color:o.color,rotation:o.rotation||0,speed:o.speed,isBoss:o.isBoss||false})));
   },
   updatePowerUps(items){
     if(this.roomRef)this.roomRef.child('powerUpItems').set(items.map(p=>({x:p.x,y:p.y,w:p.w,h:p.h,puType:p.puType,color:p.color})));
@@ -2147,7 +2147,7 @@ function startMultiGame(){
     badge.id='badge-'+idx;hpEl.appendChild(badge);
   });
   if(!GS.isHost){
-    SyncLayer.onFallingObjectsUpdate(objs=>{if(objs)GS.fallingObjects=objs;});
+    SyncLayer.onFallingObjectsUpdate(objs=>{if(objs){const localWalls=GS.fallingObjects.filter(o=>o.typeId==='wall');GS.fallingObjects=objs.concat(localWalls);}});
     SyncLayer.onPowerUpsUpdate(items=>{if(items)GS.powerUpItems=items;});
     // Listen for wall crush events from host
     let lastWallCrushTs=0;
