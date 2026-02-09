@@ -294,6 +294,10 @@ body{background:radial-gradient(ellipse at 50% 40%,#002a10 0%,#001208 40%,#000a0
 <span style="font-size:11px;color:var(--text-dim)" data-i18n="lobby_diff_label">難易度:</span>
 <div class="btn-group" id="lobby-diff-buttons" style="margin:4px 0"></div>
 </div>
+<div id="lobby-team-assign" style="display:none;margin:8px 0">
+<span style="font-size:11px;color:var(--text-dim)">チーム割当:</span>
+<div id="lobby-team-slots" style="margin:4px 0"></div>
+</div>
 <p id="lobby-rules-readonly" style="font-size:11px;color:var(--neon-yellow);display:none" data-i18n="lobby_rules_readonly">※ ルール変更はルーム作成者のみ可能です</p>
 </div>
 <p style="font-size:12px;color:var(--text-dim);text-align:center" id="lobby-info"></p>
@@ -419,6 +423,11 @@ const PLAYER_COLORS = [
   {name:'P3',rgb:[255,220,0],hex:'#ffdc00'},
   {name:'P4',rgb:[180,80,255],hex:'#b450ff'}
 ];
+const TEAM_COLORS = {A:{hex:'#ff3296',name:'A'},B:{hex:'#00dcff',name:'B'}};
+function getPlayerColor(idx){
+  if(GS.isMulti&&GS.multiMode==='team'){const team=GS.teamAssign[parseInt(idx)]||'A';return TEAM_COLORS[team].hex;}
+  return PLAYER_COLORS[parseInt(idx)]?.hex||'#fff';
+}
 
 // ===== Stage Config =====
 const STAGE_CONFIG = {
@@ -495,7 +504,7 @@ const GS = {
   currentFallSpeed:3,currentSpawnInterval:800,lastSpawnTime:0,
   gameStartTime:0,elapsed:0,difficultyFrozen:false,nextBossTime:30000,
   lastDiffUpdateTime:0,
-  roomId:null,playerIndex:0,isHost:false,isMulti:false,multiMode:'individual',
+  roomId:null,playerIndex:0,isHost:false,isMulti:false,multiMode:'individual',teamAssign:{0:'A',1:'B',2:'A',3:'B'},
   players:{},maxPlayers:4,
   bgmEnabled:true,seEnabled:true,
   username:null,isGuest:false,deviceId:null,
@@ -1350,11 +1359,12 @@ function render(){
   if(GS.isAlive){
     const pScale=GS.enlarge?1.8:1;
     const pYoff=GS.enlarge?GS.playerHeight*(pScale-1):0;
+    const myColor=getPlayerColor(GS.playerIndex);
     if(GS.dashActive){// Afterimage
-      drawStickFigure(ctx,pxAbs-10,groundY-GS.playerHeight-pYoff,PLAYER_COLORS[GS.playerIndex].hex,pose,pScale,0.3);
-      drawStickFigure(ctx,pxAbs-5,groundY-GS.playerHeight-pYoff,PLAYER_COLORS[GS.playerIndex].hex,pose,pScale,0.5);
+      drawStickFigure(ctx,pxAbs-10,groundY-GS.playerHeight-pYoff,myColor,pose,pScale,0.3);
+      drawStickFigure(ctx,pxAbs-5,groundY-GS.playerHeight-pYoff,myColor,pose,pScale,0.5);
     }
-    drawStickFigure(ctx,pxAbs,groundY-GS.playerHeight-pYoff,PLAYER_COLORS[GS.playerIndex].hex,pose,pScale,1);
+    drawStickFigure(ctx,pxAbs,groundY-GS.playerHeight-pYoff,myColor,pose,pScale,1);
     // Shield visual
     if(GS.shield){ctx.strokeStyle='rgba(68,136,255,0.5)';ctx.lineWidth=2;
       ctx.beginPath();ctx.arc(pxAbs,groundY-GS.playerHeight*pScale/2,25*pScale,0,Math.PI*2);ctx.stroke();}
@@ -1377,7 +1387,7 @@ function render(){
       if(parseInt(idx)===GS.playerIndex)return;
       if(!p||!p.alive)return;
       const px=p.x/100*W;
-      drawStickFigure(ctx,px,groundY-40,PLAYER_COLORS[parseInt(idx)]?.hex||'#fff','run',0.9,0.8);
+      drawStickFigure(ctx,px,groundY-40,getPlayerColor(idx),'run',0.9,0.8);
     });
   }
   // Particles
@@ -1467,8 +1477,15 @@ function endGame(hit,cleared){
   setTimeout(()=>showResult(),500);
 }
 function checkMultiEnd(){
-  const alive=Object.values(GS.players).filter(p=>p&&p.alive);
-  if(alive.length<=1)showResult();
+  const alive=Object.entries(GS.players).filter(([k,v])=>v&&v.alive);
+  let ended=false;
+  if(GS.multiMode==='team'){
+    const aliveTeams=new Set(alive.map(([idx])=>GS.teamAssign[parseInt(idx)]||'A'));
+    if(aliveTeams.size<=1)ended=true;
+  } else {
+    if(alive.length<=1)ended=true;
+  }
+  if(ended)showResult();
   else setTimeout(()=>checkMultiEnd(),1000);
 }
 
@@ -1476,30 +1493,72 @@ function showResult(){
   SoundMgr.stopBGM();
   const box=document.getElementById('result-box');
   if(GS.isMulti){
-    const sorted=Object.entries(GS.players).filter(([k,v])=>v).sort((a,b)=>(b[1].score||0)-(a[1].score||0));
-    const winnerIdx=sorted[0]?sorted[0][0]:0;
-    const winnerName=sorted[0]?sorted[0][1].username:'P1';
-    SoundMgr.playSE(parseInt(winnerIdx)===GS.playerIndex?'win':'lose');
-    let html='<h2>'+t('game_set')+'</h2>';
-    html+='<div class="winner-area">';
-    html+='<canvas id="winnerCanvas" width="100" height="100" style="margin:0 auto;display:block"></canvas>';
-    html+='<div class="winner-name">'+t('winner')+': '+(winnerName||'P'+(parseInt(winnerIdx)+1))+'</div></div>';
-    html+='<div class="stats"><div><span>SCORE</span><span>'+GS.score+'</span></div>';
-    html+='<div><span>MAX COMBO</span><span>x'+GS.maxCombo+'</span></div></div>';
-    html+='<div class="ranking-list">';
-    sorted.forEach(([idx,p],i)=>{
-      const pColor=PLAYER_COLORS[parseInt(idx)]?.hex||'#fff';
-      html+='<div style="color:'+pColor+'"><span>'+(i+1)+getSuffix(i+1)+' P'+(parseInt(idx)+1)+' '+(p.username||'')+(parseInt(idx)===GS.playerIndex?' (YOU)':'')+'</span><span>'+(p.score||0)+'</span></div>';
-    });
-    html+='</div>';
-    html+='<div class="result-btns"><button class="btn" onclick="rematch()">'+t('rematch')+'</button>';
-    html+='<button class="btn btn-sub" onclick="backToTitle()">'+t('back_to_title')+'</button></div>';
-    box.innerHTML=html;
-    showScreen('result');
-    setTimeout(()=>{
-      const wc=document.getElementById('winnerCanvas');
-      if(wc){const wctx=wc.getContext('2d');drawStickFigure(wctx,50,60,PLAYER_COLORS[parseInt(winnerIdx)]?.hex||'#fff','win',1.5,1);}
-    },100);
+    if(GS.multiMode==='team'){
+      // Team-based result
+      const teamScores={A:0,B:0};const teamAlive={A:false,B:false};
+      Object.entries(GS.players).filter(([k,v])=>v).forEach(([idx,p])=>{
+        const team=GS.teamAssign[parseInt(idx)]||'A';
+        teamScores[team]+=(p.score||0);
+        if(p.alive)teamAlive[team]=true;
+      });
+      let winTeam='A';
+      if(teamAlive.A&&!teamAlive.B)winTeam='A';
+      else if(teamAlive.B&&!teamAlive.A)winTeam='B';
+      else winTeam=teamScores.A>=teamScores.B?'A':'B';
+      const myTeam=GS.teamAssign[GS.playerIndex]||'A';
+      SoundMgr.playSE(myTeam===winTeam?'win':'lose');
+      let html='<h2>'+t('game_set')+'</h2>';
+      html+='<div class="winner-area">';
+      html+='<canvas id="winnerCanvas" width="100" height="100" style="margin:0 auto;display:block"></canvas>';
+      html+='<div class="winner-name" style="color:'+TEAM_COLORS[winTeam].hex+';text-shadow:0 0 10px '+TEAM_COLORS[winTeam].hex+'">TEAM '+winTeam+' '+t('winner')+'!</div></div>';
+      html+='<div class="stats">';
+      html+='<div style="color:'+TEAM_COLORS.A.hex+'"><span>TEAM A</span><span>'+teamScores.A+'</span></div>';
+      html+='<div style="color:'+TEAM_COLORS.B.hex+'"><span>TEAM B</span><span>'+teamScores.B+'</span></div>';
+      html+='<div><span>YOUR SCORE</span><span>'+GS.score+'</span></div>';
+      html+='<div><span>MAX COMBO</span><span>x'+GS.maxCombo+'</span></div></div>';
+      const sorted=Object.entries(GS.players).filter(([k,v])=>v).sort((a,b)=>(b[1].score||0)-(a[1].score||0));
+      html+='<div class="ranking-list">';
+      sorted.forEach(([idx,p],i)=>{
+        const team=GS.teamAssign[parseInt(idx)]||'A';
+        const pColor=TEAM_COLORS[team].hex;
+        html+='<div style="color:'+pColor+'"><span>'+(i+1)+getSuffix(i+1)+' ['+team+'] '+(p.username||'P'+(parseInt(idx)+1))+(parseInt(idx)===GS.playerIndex?' (YOU)':'')+'</span><span>'+(p.score||0)+'</span></div>';
+      });
+      html+='</div>';
+      html+='<div class="result-btns"><button class="btn" onclick="rematch()">'+t('rematch')+'</button>';
+      html+='<button class="btn btn-sub" onclick="backToTitle()">'+t('back_to_title')+'</button></div>';
+      box.innerHTML=html;
+      showScreen('result');
+      setTimeout(()=>{
+        const wc=document.getElementById('winnerCanvas');
+        if(wc){const wctx=wc.getContext('2d');drawStickFigure(wctx,50,60,TEAM_COLORS[winTeam].hex,'win',1.5,1);}
+      },100);
+    } else {
+      // Individual result
+      const sorted=Object.entries(GS.players).filter(([k,v])=>v).sort((a,b)=>(b[1].score||0)-(a[1].score||0));
+      const winnerIdx=sorted[0]?sorted[0][0]:0;
+      const winnerName=sorted[0]?sorted[0][1].username:'P1';
+      SoundMgr.playSE(parseInt(winnerIdx)===GS.playerIndex?'win':'lose');
+      let html='<h2>'+t('game_set')+'</h2>';
+      html+='<div class="winner-area">';
+      html+='<canvas id="winnerCanvas" width="100" height="100" style="margin:0 auto;display:block"></canvas>';
+      html+='<div class="winner-name">'+t('winner')+': '+(winnerName||'P'+(parseInt(winnerIdx)+1))+'</div></div>';
+      html+='<div class="stats"><div><span>SCORE</span><span>'+GS.score+'</span></div>';
+      html+='<div><span>MAX COMBO</span><span>x'+GS.maxCombo+'</span></div></div>';
+      html+='<div class="ranking-list">';
+      sorted.forEach(([idx,p],i)=>{
+        const pColor=PLAYER_COLORS[parseInt(idx)]?.hex||'#fff';
+        html+='<div style="color:'+pColor+'"><span>'+(i+1)+getSuffix(i+1)+' P'+(parseInt(idx)+1)+' '+(p.username||'')+(parseInt(idx)===GS.playerIndex?' (YOU)':'')+'</span><span>'+(p.score||0)+'</span></div>';
+      });
+      html+='</div>';
+      html+='<div class="result-btns"><button class="btn" onclick="rematch()">'+t('rematch')+'</button>';
+      html+='<button class="btn btn-sub" onclick="backToTitle()">'+t('back_to_title')+'</button></div>';
+      box.innerHTML=html;
+      showScreen('result');
+      setTimeout(()=>{
+        const wc=document.getElementById('winnerCanvas');
+        if(wc){const wctx=wc.getContext('2d');drawStickFigure(wctx,50,60,PLAYER_COLORS[parseInt(winnerIdx)]?.hex||'#fff','win',1.5,1);}
+      },100);
+    }
   } else {
     const isScoreAtk=GS.gameMode==='scoreAttack';
     const isSecretClear=GS.isSecretStage&&GS.allCleared;
@@ -1767,6 +1826,32 @@ function setupLobby(roomId){
   readonlyMsg.style.display=isHost?'none':'block';
   // Build mode buttons
   const modeContainer=document.getElementById('lobby-mode-buttons');modeContainer.innerHTML='';
+  const teamPanel=document.getElementById('lobby-team-assign');
+  function refreshTeamUI(){
+    teamPanel.style.display=GS.multiMode==='team'?'block':'none';
+    if(GS.multiMode!=='team')return;
+    const slots=document.getElementById('lobby-team-slots');slots.innerHTML='';
+    const players=GS.players||{};
+    for(let i=0;i<4;i++){
+      const p=players[i];if(!p)continue;
+      const team=GS.teamAssign[i]||'A';
+      const tc=TEAM_COLORS[team];
+      const row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:8px;margin:4px 0;padding:4px 8px;border:1px solid '+tc.hex+';';
+      row.innerHTML='<span style="color:'+tc.hex+';min-width:70px;font-size:12px">'+tc.name+' - '+(p.username||'P'+(i+1))+'</span>';
+      if(isHost){
+        const btnA=document.createElement('button');btnA.className='btn'+(team==='A'?' selected':'');btnA.textContent='A';
+        btnA.style.cssText='padding:3px 12px;margin:0 2px;font-size:11px;min-width:0;width:auto;border-color:'+TEAM_COLORS.A.hex+';color:'+TEAM_COLORS.A.hex;
+        const btnB=document.createElement('button');btnB.className='btn'+(team==='B'?' selected':'');btnB.textContent='B';
+        btnB.style.cssText='padding:3px 12px;margin:0 2px;font-size:11px;min-width:0;width:auto;border-color:'+TEAM_COLORS.B.hex+';color:'+TEAM_COLORS.B.hex;
+        btnA.addEventListener('click',()=>{GS.teamAssign[i]='A';roomRef.child('teamAssign').set(GS.teamAssign);SoundMgr.playSE('click');});
+        btnB.addEventListener('click',()=>{GS.teamAssign[i]='B';roomRef.child('teamAssign').set(GS.teamAssign);SoundMgr.playSE('click');});
+        row.appendChild(btnA);row.appendChild(btnB);
+      } else {
+        row.innerHTML+='<span style="color:'+tc.hex+';font-size:12px;font-weight:bold">TEAM '+tc.name+'</span>';
+      }
+      slots.appendChild(row);
+    }
+  }
   [{key:'individual',label:'multi_individual'},{key:'team',label:'multi_team'},{key:'coop',label:'multi_coop'}].forEach(m=>{
     const b=document.createElement('button');b.className='btn'+(GS.multiMode===m.key?' selected':'');b.textContent=t(m.label);b.dataset.mode=m.key;
     if(isHost){
@@ -1775,6 +1860,7 @@ function setupLobby(roomId){
         modeContainer.querySelectorAll('.btn').forEach(x=>x.classList.remove('selected'));
         b.classList.add('selected');SoundMgr.playSE('click');
         roomRef.child('gameMode').set(m.key);
+        refreshTeamUI();
       });
     } else {b.style.pointerEvents='none';b.style.opacity='0.7';}
     modeContainer.appendChild(b);
@@ -1798,13 +1884,17 @@ function setupLobby(roomId){
     const mode=snap.val();if(!mode)return;
     GS.multiMode=mode;
     modeContainer.querySelectorAll('.btn').forEach(b=>{b.classList.toggle('selected',b.dataset.mode===mode);});
-    updateLobbyInfo();
+    refreshTeamUI();updateLobbyInfo();
   });
   roomRef.child('difficulty').on('value',snap=>{
     const diff=snap.val();if(!diff)return;
     GS.difficulty=diff;
     diffContainer.querySelectorAll('.btn').forEach(b=>{b.classList.toggle('selected',b.dataset.diff===diff);});
     updateLobbyInfo();
+  });
+  roomRef.child('teamAssign').on('value',snap=>{
+    const ta=snap.val();if(!ta)return;
+    GS.teamAssign=ta;refreshTeamUI();
   });
   function updateLobbyInfo(){
     const modeLabel=t('multi_'+GS.multiMode)||GS.multiMode;
@@ -1820,15 +1910,18 @@ function setupLobby(roomId){
       const div=document.createElement('div');div.className='lobby-player'+(p?'':' empty');
       const isYou=i===GS.playerIndex;
       const isRoomHost=i===0;
-      const name=p?(p.username||pc.name)+(isYou?' (YOU)':'')+(isRoomHost?' [HOST]':''):t('waiting');
-      div.innerHTML='<div class="dot" style="background:'+pc.hex+'"></div><span style="color:'+pc.hex+'">● '+name+'</span>';
+      // Team mode: show team color
+      const displayColor=(GS.multiMode==='team'&&p)?TEAM_COLORS[GS.teamAssign[i]||'A'].hex:pc.hex;
+      const teamTag=(GS.multiMode==='team'&&p)?' [TEAM '+(GS.teamAssign[i]||'A')+']':'';
+      const name=p?(p.username||pc.name)+(isYou?' (YOU)':'')+(isRoomHost?' [HOST]':'')+teamTag:t('waiting');
+      div.innerHTML='<div class="dot" style="background:'+displayColor+'"></div><span style="color:'+displayColor+'">● '+name+'</span>';
       container.appendChild(div);
     }
     const playerCount=Object.keys(players).length;
     if(isHost){
-      document.getElementById('btn-start-game').style.display='block';
-      if(GS.multiMode==='team'&&playerCount<4)document.getElementById('btn-start-game').style.display='none';
+      document.getElementById('btn-start-game').style.display=playerCount>=2?'block':'none';
     }
+    refreshTeamUI();
   });
   roomRef.child('status').on('value',snap=>{if(snap.val()==='playing'&&!GS.gameActive)startMultiGame();});
   document.getElementById('btn-start-game').onclick=()=>{roomRef.child('status').set('playing');};
@@ -1848,11 +1941,12 @@ function startMultiGame(){
   }
   const hpEl=document.getElementById('hud-players');hpEl.style.display='flex';hpEl.innerHTML='';
   Object.entries(GS.players).forEach(([idx,p])=>{
-    if(!p)return;const pc=PLAYER_COLORS[parseInt(idx)];
-    const badge=document.createElement('span');badge.className='p-badge';badge.style.borderColor=pc.hex;badge.style.color=pc.hex;
+    if(!p)return;const pColor=getPlayerColor(idx);
+    const badge=document.createElement('span');badge.className='p-badge';badge.style.borderColor=pColor;badge.style.color=pColor;
     const isYou=parseInt(idx)===GS.playerIndex;
-    const displayName=p.username||(pc.name);
-    badge.innerHTML='● '+displayName+(isYou?' (YOU)':'');
+    const displayName=p.username||(PLAYER_COLORS[parseInt(idx)]?.name||'P'+(parseInt(idx)+1));
+    const teamTag=GS.multiMode==='team'?'['+( GS.teamAssign[parseInt(idx)]||'A')+'] ':'';
+    badge.innerHTML='● '+teamTag+displayName+(isYou?' (YOU)':'');
     badge.id='badge-'+idx;hpEl.appendChild(badge);
   });
   if(!GS.isHost){
@@ -1863,10 +1957,17 @@ function startMultiGame(){
     if(!players)return;GS.players=players;
     Object.entries(players).forEach(([idx,p])=>{
       const badge=document.getElementById('badge-'+idx);
-      if(badge&&p&&!p.alive){badge.style.opacity='0.3';badge.innerHTML='● '+(p.username||PLAYER_COLORS[parseInt(idx)].name)+' ☠';}
+      if(badge&&p&&!p.alive){badge.style.opacity='0.3';const teamTag=GS.multiMode==='team'?'['+(GS.teamAssign[parseInt(idx)]||'A')+'] ':'';badge.innerHTML='● '+teamTag+(p.username||PLAYER_COLORS[parseInt(idx)].name)+' ☠';}
     });
     const alive=Object.entries(players).filter(([k,v])=>v&&v.alive);
-    if(alive.length<=1&&GS.gameActive){GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);setTimeout(()=>showResult(),500);}
+    let gameEnded=false;
+    if(GS.multiMode==='team'){
+      const aliveTeams=new Set(alive.map(([idx])=>GS.teamAssign[parseInt(idx)]||'A'));
+      if(aliveTeams.size<=1)gameEnded=true;
+    } else {
+      if(alive.length<=1)gameEnded=true;
+    }
+    if(gameEnded&&GS.gameActive){GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);setTimeout(()=>showResult(),500);}
   });
   showCountdown(()=>{
     GS.gameStartTime=Date.now();GS.gameActive=true;
