@@ -37,10 +37,11 @@ body{background:var(--bg-dark);color:var(--text-primary);font-family:'Courier Ne
 .btn-group .btn{flex:1}
 .btn-group .btn.selected{border-color:var(--neon-green);box-shadow:var(--border-glow);background:rgba(0,255,65,0.1)}
 .spacer{height:12px}
-.footer{position:fixed;bottom:10px;left:0;width:100%;display:flex;justify-content:center;gap:20px;z-index:20;font-size:12px}
-.footer span{cursor:pointer;color:var(--text-dim);transition:color 0.2s}
-.footer span:hover{color:var(--neon-green)}
-.footer span.active-toggle{color:var(--neon-green)}
+.footer{position:fixed;bottom:12px;left:0;width:100%;display:flex;justify-content:center;gap:12px;z-index:20}
+.footer-btn{cursor:pointer;width:44px;height:44px;border-radius:50%;border:1px solid var(--neon-green-dim);background:rgba(0,20,10,0.85);display:flex;align-items:center;justify-content:center;font-size:20px;transition:all 0.2s;color:var(--text-dim)}
+.footer-btn:hover{border-color:var(--neon-green);box-shadow:var(--border-glow)}
+.footer-btn.active-toggle{color:var(--neon-green);border-color:var(--neon-green);text-shadow:0 0 8px var(--neon-green-glow)}
+.footer-btn.off{opacity:0.4;color:var(--neon-red)}
 .modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:50;justify-content:center;align-items:center}
 .modal-overlay.active{display:flex}
 .modal{background:var(--bg-panel);border:1px solid var(--neon-green-dim);box-shadow:var(--border-glow);padding:24px;width:90%;max-width:500px;max-height:85vh;overflow-y:auto;position:relative}
@@ -125,9 +126,9 @@ body{background:var(--bg-dark);color:var(--text-primary);font-family:'Courier Ne
 </div>
 <div style="height:60px"></div>
 <div class="footer">
-<span id="toggle-bgm" class="active-toggle">BGM: ON</span>
-<span id="toggle-se" class="active-toggle">SE: ON</span>
-<span id="toggle-lang">JP / EN</span>
+<div class="footer-btn active-toggle" id="toggle-bgm" title="BGM ON/OFF">🎵</div>
+<div class="footer-btn active-toggle" id="toggle-se" title="SE ON/OFF">🔊</div>
+<div class="footer-btn active-toggle" id="toggle-lang" title="JP/EN">🌐</div>
 </div>
 </div>
 
@@ -1371,9 +1372,9 @@ function setupUI(){
   document.getElementById('btn-multi').addEventListener('click',()=>{SoundMgr.playSE('click');setupMultiModal();showModal('multi-modal');});
   document.getElementById('btn-rules').addEventListener('click',()=>{SoundMgr.playSE('click');document.getElementById('rule-content').innerHTML=t('rule_text');showModal('rule-modal');});
   document.getElementById('btn-ranking').addEventListener('click',()=>{SoundMgr.playSE('click');loadRankings();showModal('ranking-modal');});
-  document.getElementById('toggle-bgm').addEventListener('click',function(){SoundMgr.toggleBGM();this.textContent=SoundMgr.bgmEnabled?t('bgm_on'):t('bgm_off');this.classList.toggle('active-toggle',SoundMgr.bgmEnabled);});
-  document.getElementById('toggle-se').addEventListener('click',function(){SoundMgr.toggleSE();this.textContent=SoundMgr.seEnabled?t('se_on'):t('se_off');this.classList.toggle('active-toggle',SoundMgr.seEnabled);});
-  document.getElementById('toggle-lang').addEventListener('click',()=>{switchLanguage(currentLang==='ja'?'en':'ja');});
+  document.getElementById('toggle-bgm').addEventListener('click',function(){SoundMgr.toggleBGM();this.textContent=SoundMgr.bgmEnabled?'🎵':'🎵';this.classList.toggle('active-toggle',SoundMgr.bgmEnabled);this.classList.toggle('off',!SoundMgr.bgmEnabled);});
+  document.getElementById('toggle-se').addEventListener('click',function(){SoundMgr.toggleSE();this.textContent=SoundMgr.seEnabled?'🔊':'🔇';this.classList.toggle('active-toggle',SoundMgr.seEnabled);this.classList.toggle('off',!SoundMgr.seEnabled);});
+  document.getElementById('toggle-lang').addEventListener('click',function(){switchLanguage(currentLang==='ja'?'en':'ja');this.textContent=currentLang==='ja'?'🌐':'🌐';});
   document.getElementById('btn-join-room').addEventListener('click',()=>{SoundMgr.playSE('click');joinRoom();});
   document.getElementById('btn-start-solo').addEventListener('click',()=>{SoundMgr.playSE('click');startSoloGame();});
   document.querySelectorAll('.btn').forEach(b=>{b.addEventListener('mouseenter',()=>SoundMgr.playSE('hover'));});
