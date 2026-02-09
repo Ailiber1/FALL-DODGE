@@ -152,6 +152,7 @@ body{background:radial-gradient(ellipse at 50% 40%,#002a10 0%,#001208 40%,#000a0
   </div>
   <div class="hud-center">
     <span class="hud-stage" id="hud-difficulty">STAGE 1</span>
+    <span id="hud-multi-rule" style="font-size:11px;color:var(--neon-cyan);display:none"></span>
     <span class="hud-player-name" id="gh-player"></span>
   </div>
   <div class="hud-right">
@@ -246,15 +247,9 @@ body{background:radial-gradient(ellipse at 50% 40%,#002a10 0%,#001208 40%,#000a0
 <h2>MULTIPLAYER</h2>
 <label>ROOM ID</label>
 <input type="text" id="room-input" placeholder="ルームIDを入力..." maxlength="6">
-<p style="font-size:11px;color:var(--text-dim);margin:8px 0">同じルームIDを入力したプレイヤー同士がマッチングします</p>
+<p style="font-size:11px;color:var(--text-dim);margin:8px 0" data-i18n="multi_room_hint">同じルームIDを入力したプレイヤー同士がマッチングします<br>空欄で新規ルームを作成します</p>
 <div class="spacer"></div>
-<label>対戦モード</label>
-<div class="btn-group" id="multi-mode-buttons"></div>
-<div class="spacer"></div>
-<label>難易度</label>
-<div class="btn-group" id="multi-diff-buttons"></div>
-<div class="spacer"></div>
-<button class="btn" id="btn-join-room">ルームに参加</button>
+<button class="btn" id="btn-join-room" data-i18n="btn_join_room">ルームに参加</button>
 <button class="btn btn-sub" id="btn-cancel-multi" data-close="multi-modal">キャンセル</button>
 </div></div>
 
@@ -262,14 +257,27 @@ body{background:radial-gradient(ellipse at 50% 40%,#002a10 0%,#001208 40%,#000a0
 <div id="lobby-screen" class="screen">
 <div class="panel" style="max-width:500px">
 <h2 id="lobby-title">ONLINE ROOM</h2>
-<p style="font-size:12px;color:var(--text-dim)" id="lobby-info"></p>
 <div style="display:flex;gap:8px;margin:8px 0;align-items:center">
 <span style="font-size:11px;color:var(--text-dim)" id="lobby-link"></span>
 <button class="btn" style="width:auto;padding:6px 12px;font-size:11px" id="btn-copy-link">コピー</button>
 </div>
 <div class="lobby-players" id="lobby-players"></div>
-<button class="btn" id="btn-start-game" style="display:none">ゲーム開始</button>
-<button class="btn btn-sub" id="btn-leave-lobby">退出</button>
+<div class="spacer"></div>
+<div id="lobby-rules" style="border:1px solid var(--neon-green-dim);padding:12px;margin:8px 0">
+<label style="font-size:13px;letter-spacing:2px;margin-bottom:8px;display:flex;align-items:center;gap:6px"><span data-i18n="lobby_rules_label">ルール設定</span><span id="lobby-rules-host-tag" style="font-size:10px;padding:2px 6px;border:1px solid var(--neon-gold);color:var(--neon-gold);display:none">HOST</span></label>
+<div style="margin:8px 0">
+<span style="font-size:11px;color:var(--text-dim)" data-i18n="lobby_mode_label">対戦モード:</span>
+<div class="btn-group" id="lobby-mode-buttons" style="margin:4px 0"></div>
+</div>
+<div style="margin:8px 0">
+<span style="font-size:11px;color:var(--text-dim)" data-i18n="lobby_diff_label">難易度:</span>
+<div class="btn-group" id="lobby-diff-buttons" style="margin:4px 0"></div>
+</div>
+<p id="lobby-rules-readonly" style="font-size:11px;color:var(--neon-yellow);display:none" data-i18n="lobby_rules_readonly">※ ルール変更はルーム作成者のみ可能です</p>
+</div>
+<p style="font-size:12px;color:var(--text-dim);text-align:center" id="lobby-info"></p>
+<button class="btn" id="btn-start-game" style="display:none" data-i18n="game_start">ゲーム開始</button>
+<button class="btn btn-sub" id="btn-leave-lobby" data-i18n="btn_leave_lobby">退出</button>
 </div>
 </div>
 
@@ -306,6 +314,10 @@ const i18n = {
     c_start:'ゲームスタート！生き延びろ！',c_first:'最初の回避成功！いい滑り出しだ',c_combo2:'コンボ発動！この調子だ',c_combo5:'フィーバー突入！止まらない！',c_combo10:'MAX!! 神回避の領域だ！',c_nearmiss:'危ない！紙一重だった！',c_shield:'シールドGET！保険をかけた',c_shield_break:'シールド消滅！残りは腕だけだ',c_boss:'巨大落下物接近！気をつけろ！',c_boss_dodge:'ナイス！巨大物を回避した！',c_stage:'ステージ{n}突入！',c_score100:'100回避達成！まだまだ行ける！',c_1min:'1分経過！タフな生存者だ',c_2min:'2分経過！もはや伝説級だ',c_pout:'P{n}が脱落！残り{r}人の戦い！',c_final:'一騎打ち！最後の勝負だ！',c_storm:'嵐が来た！落下物が斜めに飛ぶぞ',
     mode_normal:'ノーマル',mode_survival:'サバイバル',mode_timeAttack:'タイムアタック',mode_bossRush:'ボスラッシュ',mode_reverse:'リバース',mode_coop:'協力モード',
     multi_individual:'個人戦',multi_team:'チーム戦',multi_coop:'協力',
+    multi_room_hint:'同じルームIDを入力したプレイヤー同士がマッチングします<br>空欄で新規ルームを作成します',
+    btn_join_room:'ルームに参加',btn_leave_lobby:'退出',
+    lobby_rules_label:'ルール設定',lobby_mode_label:'対戦モード:',lobby_diff_label:'難易度:',
+    lobby_rules_readonly:'※ ルール変更はルーム作成者のみ可能です',
     stage1:'工事現場',stage2:'キッチン',stage3:'オフィス',stage4:'夜の街',stage5:'宇宙'
   },
   en:{catchcopy:'A split-second decision determines survival.',btn_register_play:'Register & Play',btn_guest_play:'▶ Play as Guest',btn_multi:'Multiplayer (up to 4)',btn_rules:'How to Play',btn_ranking:'Rankings',difficulty_easy:'Easy',difficulty_normal:'Normal',difficulty_hard:'Hard',game_over:'GAME OVER',game_set:'GAME SET!',winner:'WINNER',score_label:'SCORE',rematch:'Rematch',back_to_title:'Back to Title',retry:'Play Again',waiting:'Waiting...',game_start:'Start Game',disconnected:' disconnected',near_miss:'NEAR MISS!',combo:'COMBO!',fever:'FEVER!',shield_break:'SHIELD BREAK!',stage_label:'STAGE',weather_rain:'Rain',weather_thunder:'Thunder',weather_storm:'Storm',bgm_on:'BGM: ON',bgm_off:'BGM: OFF',se_on:'SE: ON',se_off:'SE: OFF',
@@ -313,6 +325,10 @@ const i18n = {
     c_start:'Game start! Survive!',c_first:'First dodge! Good start!',c_combo2:'Combo activated! Keep it up!',c_combo5:'FEVER mode! Unstoppable!',c_combo10:'MAX!! Godlike dodging!',c_nearmiss:'Close call! That was tight!',c_shield:'Shield acquired! Safety net!',c_shield_break:'Shield gone! Skill only now!',c_boss:'BOSS incoming! Watch out!',c_boss_dodge:'Nice! Boss dodged!',c_stage:'Stage {n}!',c_score100:'100 dodges! Still going!',c_1min:'1 minute survived! Tough!',c_2min:'2 minutes! Legendary!',c_pout:'P{n} is out! {r} remain!',c_final:'1v1! Final showdown!',c_storm:'Storm! Objects flying sideways!',
     mode_normal:'Normal',mode_survival:'Survival',mode_timeAttack:'Time Attack',mode_bossRush:'Boss Rush',mode_reverse:'Reverse',mode_coop:'Co-op',
     multi_individual:'Individual',multi_team:'Team',multi_coop:'Co-op',
+    multi_room_hint:'Players with the same Room ID are matched together<br>Leave blank to create a new room',
+    btn_join_room:'Join Room',btn_leave_lobby:'Leave',
+    lobby_rules_label:'Rules',lobby_mode_label:'Mode:',lobby_diff_label:'Difficulty:',
+    lobby_rules_readonly:'* Only the room creator can change rules',
     stage1:'Construction',stage2:'Kitchen',stage3:'Office',stage4:'Night City',stage5:'Outer Space'
   }
 };
@@ -1382,6 +1398,9 @@ function resetGameState(){
     comboTriggered:{},scoreTriggered:{},timeTriggered:{}});
   GS.reverse=GS.gameMode==='reverse';GS.stageStartTime=Date.now();
   const sd=STAGE_DIFFICULTY[1];GS.currentFallSpeed=sd.fallSpeed;GS.currentSpawnInterval=sd.spawnInterval;
+  // Hide multi-rule HUD when not multi
+  const ruleEl=document.getElementById('hud-multi-rule');
+  if(ruleEl)ruleEl.style.display='none';
 }
 
 // ===== Pause =====
@@ -1518,23 +1537,23 @@ function joinRoom(){
   let roomId=document.getElementById('room-input').value.trim().toUpperCase();
   if(!roomId)roomId=generateRoomId();
   GS.roomId=roomId;GS.isMulti=true;
-  const mmSel=document.querySelector('#multi-mode-buttons .btn.selected');
-  GS.multiMode=mmSel?mmSel.dataset.mode:'individual';
-  const mdSel=document.querySelector('#multi-diff-buttons .btn.selected');
-  GS.difficulty=mdSel?mdSel.dataset.diff:'normal';
   SyncLayer.connect(roomId);
   const roomRef=database.ref('rooms/'+roomId);
   roomRef.once('value',snap=>{
     const room=snap.val();
     if(!room){
+      // First player creates room - becomes host
       GS.playerIndex=0;GS.isHost=true;
-      roomRef.set({status:'waiting',difficulty:GS.difficulty,gameMode:GS.multiMode,hostIndex:0,
+      GS.multiMode='individual';GS.difficulty='normal';
+      roomRef.set({status:'waiting',difficulty:'normal',gameMode:'individual',hostIndex:0,
         createdAt:firebase.database.ServerValue.TIMESTAMP,
         players:{0:{username:GS.username||'PLAYER 1',deviceId:GS.deviceId,x:50,alive:true,score:0}}});
     } else {
       const players=room.players||{};const count=Object.keys(players).length;
-      if(count>=4){showToast('ルームが満員です');return;}
-      GS.playerIndex=count;GS.isHost=false;GS.difficulty=room.difficulty||'normal';GS.multiMode=room.gameMode||'individual';
+      if(count>=4){showToast(currentLang==='ja'?'ルームが満員です':'Room is full');return;}
+      if(room.status==='playing'){showToast(currentLang==='ja'?'ゲーム進行中です':'Game in progress');return;}
+      GS.playerIndex=count;GS.isHost=false;
+      GS.difficulty=room.difficulty||'normal';GS.multiMode=room.gameMode||'individual';
       roomRef.child('players/'+GS.playerIndex).set({username:GS.username||'PLAYER '+(GS.playerIndex+1),deviceId:GS.deviceId,x:50,alive:true,score:0});
     }
     hideModal('multi-modal');showScreen('lobby');setupLobby(roomId);
@@ -1544,22 +1563,77 @@ function setupLobby(roomId){
   document.getElementById('lobby-title').textContent='ONLINE ROOM // '+roomId;
   const url=window.location.origin+window.location.pathname+'?room='+roomId;
   document.getElementById('lobby-link').textContent=url;
-  document.getElementById('lobby-info').textContent='モード: '+GS.multiMode+' / 難易度: '+t('difficulty_'+GS.difficulty);
-  document.getElementById('btn-copy-link').onclick=()=>{navigator.clipboard.writeText(url).then(()=>showToast('URLをコピーしました'));};
-  document.getElementById('btn-start-game').style.display=GS.isHost?'block':'none';
+  document.getElementById('btn-copy-link').onclick=()=>{navigator.clipboard.writeText(url).then(()=>showToast(currentLang==='ja'?'URLをコピーしました':'URL copied'));};
+  document.getElementById('btn-start-game').style.display='none';
   const roomRef=database.ref('rooms/'+roomId);
+  // --- Rule Selection UI ---
+  const hostTag=document.getElementById('lobby-rules-host-tag');
+  const readonlyMsg=document.getElementById('lobby-rules-readonly');
+  hostTag.style.display=GS.isHost?'inline':'none';
+  readonlyMsg.style.display=GS.isHost?'none':'block';
+  // Build mode buttons
+  const modeContainer=document.getElementById('lobby-mode-buttons');modeContainer.innerHTML='';
+  [{key:'individual',label:'multi_individual'},{key:'team',label:'multi_team'},{key:'coop',label:'multi_coop'}].forEach(m=>{
+    const b=document.createElement('button');b.className='btn'+(GS.multiMode===m.key?' selected':'');b.textContent=t(m.label);b.dataset.mode=m.key;
+    if(GS.isHost){
+      b.addEventListener('click',()=>{
+        GS.multiMode=m.key;
+        modeContainer.querySelectorAll('.btn').forEach(x=>x.classList.remove('selected'));
+        b.classList.add('selected');SoundMgr.playSE('click');
+        roomRef.child('gameMode').set(m.key);
+      });
+    } else {b.style.pointerEvents='none';b.style.opacity='0.7';}
+    modeContainer.appendChild(b);
+  });
+  // Build difficulty buttons
+  const diffContainer=document.getElementById('lobby-diff-buttons');diffContainer.innerHTML='';
+  ['easy','normal','hard'].forEach(d=>{
+    const b=document.createElement('button');b.className='btn'+(GS.difficulty===d?' selected':'');b.textContent=t('difficulty_'+d);b.dataset.diff=d;
+    if(GS.isHost){
+      b.addEventListener('click',()=>{
+        GS.difficulty=d;
+        diffContainer.querySelectorAll('.btn').forEach(x=>x.classList.remove('selected'));
+        b.classList.add('selected');SoundMgr.playSE('click');
+        roomRef.child('difficulty').set(d);
+      });
+    } else {b.style.pointerEvents='none';b.style.opacity='0.7';}
+    diffContainer.appendChild(b);
+  });
+  // Listen for rule changes from host (for non-host players)
+  roomRef.child('gameMode').on('value',snap=>{
+    const mode=snap.val();if(!mode)return;
+    GS.multiMode=mode;
+    modeContainer.querySelectorAll('.btn').forEach(b=>{b.classList.toggle('selected',b.dataset.mode===mode);});
+    updateLobbyInfo();
+  });
+  roomRef.child('difficulty').on('value',snap=>{
+    const diff=snap.val();if(!diff)return;
+    GS.difficulty=diff;
+    diffContainer.querySelectorAll('.btn').forEach(b=>{b.classList.toggle('selected',b.dataset.diff===diff);});
+    updateLobbyInfo();
+  });
+  function updateLobbyInfo(){
+    const modeLabel=t('multi_'+GS.multiMode)||GS.multiMode;
+    const diffLabel=t('difficulty_'+GS.difficulty)||GS.difficulty;
+    document.getElementById('lobby-info').textContent=(currentLang==='ja'?'現在のルール: ':'Rules: ')+modeLabel+' / '+diffLabel;
+  }
+  updateLobbyInfo();
+  // --- Player List ---
   roomRef.child('players').on('value',snap=>{
     const players=snap.val()||{};GS.players=players;
     const container=document.getElementById('lobby-players');container.innerHTML='';
     for(let i=0;i<4;i++){const p=players[i];const pc=PLAYER_COLORS[i];
       const div=document.createElement('div');div.className='lobby-player'+(p?'':' empty');
       const isYou=i===GS.playerIndex;
-      const name=p?(p.username||pc.name)+(isYou?' (YOU)':''):t('waiting');
+      const isRoomHost=i===0;
+      const name=p?(p.username||pc.name)+(isYou?' (YOU)':'')+(isRoomHost?' [HOST]':''):t('waiting');
       div.innerHTML='<div class="dot" style="background:'+pc.hex+'"></div><span style="color:'+pc.hex+'">● '+name+'</span>';
       container.appendChild(div);
     }
-    if(GS.isHost&&Object.keys(players).length>=2)document.getElementById('btn-start-game').style.display='block';
-    if(GS.multiMode==='team'&&Object.keys(players).length<4)document.getElementById('btn-start-game').style.display='none';
+    const playerCount=Object.keys(players).length;
+    if(GS.isHost&&playerCount>=2)document.getElementById('btn-start-game').style.display='block';
+    else if(GS.isHost)document.getElementById('btn-start-game').style.display='none';
+    if(GS.multiMode==='team'&&playerCount<4)document.getElementById('btn-start-game').style.display='none';
   });
   roomRef.child('status').on('value',snap=>{if(snap.val()==='playing'&&!GS.gameActive)startMultiGame();});
   document.getElementById('btn-start-game').onclick=()=>{roomRef.child('status').set('playing');};
@@ -1569,6 +1643,14 @@ function setupLobby(roomId){
 function startMultiGame(){
   resetGameState();GS.isMulti=true;GS.cpuPlayers=[];
   showScreen('game');setupCanvas();SoundMgr.playMultiBGM();
+  // Show multi rules in HUD
+  const ruleEl=document.getElementById('hud-multi-rule');
+  if(ruleEl){
+    const modeLabel=t('multi_'+GS.multiMode)||GS.multiMode;
+    const diffLabel=t('difficulty_'+GS.difficulty)||GS.difficulty;
+    ruleEl.textContent='['+modeLabel+' / '+diffLabel+']';
+    ruleEl.style.display='inline';
+  }
   const hpEl=document.getElementById('hud-players');hpEl.style.display='flex';hpEl.innerHTML='';
   Object.entries(GS.players).forEach(([idx,p])=>{
     if(!p)return;const pc=PLAYER_COLORS[parseInt(idx)];
@@ -1722,13 +1804,8 @@ function setupSoloModal(){
 }
 function setupModeModal(){setupSoloModal();}
 function setupMultiModal(){
-  const mm=document.getElementById('multi-mode-buttons');mm.innerHTML='';
-  [{key:'individual',label:'multi_individual'},{key:'team',label:'multi_team'},{key:'coop',label:'multi_coop'}].forEach(m=>{
-    const b=document.createElement('button');b.className='btn'+(GS.multiMode===m.key?' selected':'');b.textContent=t(m.label);b.dataset.mode=m.key;
-    b.addEventListener('click',()=>{GS.multiMode=m.key;mm.querySelectorAll('.btn').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');SoundMgr.playSE('click');});mm.appendChild(b);});
-  const md=document.getElementById('multi-diff-buttons');md.innerHTML='';
-  ['easy','normal','hard'].forEach(d=>{const b=document.createElement('button');b.className='btn'+(GS.difficulty===d?' selected':'');b.textContent=t('difficulty_'+d);b.dataset.diff=d;
-    b.addEventListener('click',()=>{GS.difficulty=d;md.querySelectorAll('.btn').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');SoundMgr.playSE('click');});md.appendChild(b);});
+  // Multi modal now only contains Room ID input - no mode/difficulty selection
+  // Rules are selected in the lobby by the host
 }
 function drawTitleChars(){const tc=document.getElementById('titleCharsCanvas');if(!tc)return;const tctx=tc.getContext('2d');tctx.clearRect(0,0,200,60);PLAYER_COLORS.forEach((pc,i)=>{drawStickFigure(tctx,30+i*45,35,pc.hex,'run',0.7,1);});}
 
