@@ -59,7 +59,7 @@ body{background:var(--bg-dark);color:var(--text-primary);font-family:'Courier Ne
 .hud-players{width:100%;display:flex;gap:4px;padding:2px 10px;background:rgba(0,10,5,0.8);font-size:11px}
 .hud-players .p-badge{padding:2px 8px;border:1px solid;font-size:11px}
 .game-canvas-wrap{flex:1;width:100%;display:flex;justify-content:center;align-items:center;overflow:hidden;position:relative}
-#gameCanvas{background:#000a04;display:block;max-width:100%;max-height:100%}
+#gameCanvas{background:#000a04;display:block;width:100%;height:100%}
 .mobile-controls{width:100%;padding:8px 10px;background:rgba(0,10,5,0.95);border-top:1px solid var(--neon-green-dim);display:flex;justify-content:space-between;align-items:center;gap:8px;z-index:5}
 .ctrl-btn{padding:14px 24px;border:1px solid var(--neon-green-dim);color:var(--neon-green);font-family:inherit;font-size:16px;background:rgba(0,20,10,0.8);cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;min-width:70px;text-align:center}
 .ctrl-btn:active{background:rgba(0,255,65,0.15);box-shadow:var(--border-glow)}
@@ -117,7 +117,7 @@ body{background:var(--bg-dark);color:var(--text-primary);font-family:'Courier Ne
 <button class="btn" id="btn-register" data-i18n="btn_register_play">登録してゲームを始める</button>
 <button class="btn btn-sub" id="btn-guest" data-i18n="btn_guest_play">登録しないでゲームを始める</button>
 <div class="spacer"></div>
-<button class="btn" id="btn-solo" data-i18n="btn_solo">一人でプレイ（CPU対戦）</button>
+<button class="btn" id="btn-solo" style="font-size:18px;padding:16px;background:rgba(0,255,65,0.08)">▶ ゲームを始める</button>
 <button class="btn" id="btn-multi" data-i18n="btn_multi">マルチプレイ（最大4人）</button>
 <div class="spacer"></div>
 <button class="btn btn-sub" id="btn-rules" data-i18n="btn_rules">ルール説明を見る</button>
@@ -322,11 +322,19 @@ const STAGE_CONFIG = {
 };
 function getCurrentStage(score){if(score>=300)return 5;if(score>=200)return 4;if(score>=120)return 3;if(score>=50)return 2;return 1;}
 
-// ===== Difficulty Config =====
+// ===== Difficulty Config (per stage) =====
 const DIFF_CONFIG = {
   easy:  {fallSpeed:2,spawnInterval:1200,maxObjects:3,speedUp:0.3,intervalDown:50,freezeAt:90000,maxSpeed:5,minInterval:600},
   normal:{fallSpeed:3,spawnInterval:800, maxObjects:5,speedUp:0.5,intervalDown:80,freezeAt:60000,maxSpeed:8,minInterval:300},
   hard:  {fallSpeed:5,spawnInterval:500, maxObjects:8,speedUp:0.8,intervalDown:100,freezeAt:45000,maxSpeed:12,minInterval:150}
+};
+// Stage-based difficulty: each stage gets harder
+const STAGE_DIFFICULTY = {
+  1:{fallSpeed:3, spawnInterval:600, maxObjects:8, timeLimit:30},
+  2:{fallSpeed:4, spawnInterval:450, maxObjects:12,timeLimit:35},
+  3:{fallSpeed:5.5,spawnInterval:350,maxObjects:15, timeLimit:40},
+  4:{fallSpeed:7, spawnInterval:250, maxObjects:20,timeLimit:45},
+  5:{fallSpeed:9, spawnInterval:180, maxObjects:25,timeLimit:50}
 };
 
 // ===== Falling Object Types =====
@@ -779,7 +787,8 @@ const SyncLayer = {
 function spawnFallingObject(){
   const now=Date.now();
   if(now-GS.lastSpawnTime<GS.currentSpawnInterval)return;
-  if(GS.fallingObjects.length>=DIFF_CONFIG[GS.difficulty].maxObjects*2)return;
+  const sd=STAGE_DIFFICULTY[GS.currentStage]||STAGE_DIFFICULTY[1];
+  if(GS.fallingObjects.length>=sd.maxObjects)return;
   GS.lastSpawnTime=now;
   // Power-up chance
   const puRoll=Math.random();let puCum=0;
@@ -818,31 +827,41 @@ function spawnBossObject(){
   },2000);
 }
 
-// ===== Difficulty Update =====
+// ===== Difficulty Update (stage-based) =====
 function updateDifficulty(){
-  if(GS.difficultyFrozen)return;
-  const dc=DIFF_CONFIG[GS.difficulty];
-  if(GS.gameMode==='survival'||GS.elapsed<dc.freezeAt){
-    const intervals=Math.floor(GS.elapsed/10000);
-    GS.currentFallSpeed=Math.min(dc.maxSpeed,dc.fallSpeed+dc.speedUp*intervals);
-    GS.currentSpawnInterval=Math.max(dc.minInterval,dc.spawnInterval-dc.intervalDown*intervals);
-  } else {
-    GS.difficultyFrozen=true;
-  }
+  const sd=STAGE_DIFFICULTY[GS.currentStage];if(!sd)return;
+  // Gradually speed up within stage
+  const stageElapsed=(Date.now()-GS.stageStartTime)/1000;
+  const progress=Math.min(1,stageElapsed/sd.timeLimit);
+  GS.currentFallSpeed=sd.fallSpeed*(1+progress*0.3);
+  GS.currentSpawnInterval=Math.max(100,sd.spawnInterval*(1-progress*0.3));
   if(GS.slowMotion)GS.currentFallSpeed*=0.5;
 }
 
-// ===== Stage Transition =====
+// ===== Stage Transition (time-based) =====
 function checkStageTransition(){
-  const newStage=getCurrentStage(GS.score);
-  if(newStage!==GS.currentStage){
-    GS.currentStage=newStage;
-    const label=STAGE_CONFIG[newStage];
-    GS.stageTransitionUntil=Date.now()+2000;
-    GS.stageTransitionText='STAGE '+newStage+' - '+(currentLang==='ja'?label.labelJa:label.label);
-    SoundMgr.playSE('stage');SoundMgr.changeBGMForStage(newStage);
-    Commentary.add(t('c_stage').replace('{n}',newStage),2);
+  const sd=STAGE_DIFFICULTY[GS.currentStage];
+  if(!sd)return;
+  const stageElapsed=(Date.now()-GS.stageStartTime)/1000;
+  GS.stageTimeRemaining=Math.max(0,sd.timeLimit-stageElapsed);
+  // Stage clear!
+  if(stageElapsed>=sd.timeLimit){
+    if(GS.currentStage>=5){endGame(false,true);return;}// All stages cleared!
+    advanceStage();
   }
+}
+function advanceStage(){
+  GS.currentStage++;
+  const sd=STAGE_DIFFICULTY[GS.currentStage];
+  if(!sd)return;
+  GS.stageStartTime=Date.now();
+  GS.currentFallSpeed=sd.fallSpeed;GS.currentSpawnInterval=sd.spawnInterval;
+  GS.fallingObjects=[];GS.powerUpItems=[];GS.bossWarnings=[];
+  const label=STAGE_CONFIG[GS.currentStage];
+  GS.stageTransitionUntil=Date.now()+2500;
+  GS.stageTransitionText='STAGE '+GS.currentStage+' - '+(currentLang==='ja'?label.labelJa:label.label);
+  SoundMgr.playSE('stage');SoundMgr.changeBGMForStage(GS.currentStage);
+  Commentary.add(t('c_stage').replace('{n}',GS.currentStage),2);
 }
 
 // ===== Game Loop =====
@@ -1055,8 +1074,8 @@ function updateHUD(){
     else puText+=p.icon+' ';
   });
   document.getElementById('hud-powerup').textContent=puText;
-  document.getElementById('hud-difficulty').textContent=t('difficulty_'+GS.difficulty).toUpperCase();
-  if(GS.gameMode==='timeAttack')document.getElementById('hud-time').textContent='⏱'+Math.ceil(GS.timeRemaining/1000)+'s';
+  document.getElementById('hud-difficulty').textContent='STAGE '+GS.currentStage;
+  document.getElementById('hud-time').textContent='⏱ '+Math.ceil(GS.stageTimeRemaining||0)+'s';
   const ghRight=document.getElementById('gh-right');
   ghRight.textContent='STAGE '+GS.currentStage+' / '+(currentLang==='ja'?STAGE_CONFIG[GS.currentStage].labelJa:STAGE_CONFIG[GS.currentStage].label);
   // Dash gauge
@@ -1066,9 +1085,10 @@ function updateHUD(){
 }
 
 // ===== End Game =====
-function endGame(hit){
-  GS.gameActive=false;GS.isAlive=false;
+function endGame(hit,cleared){
+  GS.gameActive=false;if(hit)GS.isAlive=false;
   if(GS.animationId)cancelAnimationFrame(GS.animationId);
+  GS.allCleared=cleared||false;
   if(hit){
     SoundMgr.playSE('hit');
     spawnParticles(GS.playerX/100*W+GS.playerWidth/2,groundY-GS.playerHeight/2,'#ff3366',20,10);
@@ -1118,8 +1138,8 @@ function showResult(){
       if(wc){const wctx=wc.getContext('2d');drawStickFigure(wctx,50,60,PLAYER_COLORS[parseInt(winnerIdx)]?.hex||'#fff','win',1.5,1);}
     },100);
   } else {
-    SoundMgr.playSE(GS.gameMode==='timeAttack'?'win':'lose');
-    let html='<h2>'+(GS.gameMode==='timeAttack'?'TIME UP!':t('game_over'))+'</h2>';
+    SoundMgr.playSE(GS.allCleared?'win':'lose');
+    let html='<h2>'+(GS.allCleared?'ALL STAGES CLEARED!':t('game_over'))+'</h2>';
     html+='<canvas id="resultCharCanvas" width="80" height="80" style="margin:0 auto;display:block"></canvas>';
     html+='<div class="stats">';
     html+='<div><span>SCORE</span><span>'+GS.score+'</span></div>';
@@ -1137,7 +1157,7 @@ function showResult(){
     showScreen('result');
     setTimeout(()=>{
       const rc=document.getElementById('resultCharCanvas');
-      if(rc){const rctx=rc.getContext('2d');drawStickFigure(rctx,40,50,PLAYER_COLORS[GS.playerIndex].hex,'dead',1.2,1);}
+      if(rc){const rctx=rc.getContext('2d');drawStickFigure(rctx,40,50,PLAYER_COLORS[GS.playerIndex].hex,GS.allCleared?'win':'dead',1.2,1);}
     },100);
   }
 }
@@ -1171,9 +1191,7 @@ function setupCanvas(){
 }
 function resizeCanvas(){
   const wrap=document.querySelector('.game-canvas-wrap');if(!wrap)return;
-  const ww=wrap.clientWidth,wh=wrap.clientHeight,ratio=9/16;
-  if(ww/wh<ratio){canvas.width=ww;canvas.height=ww/ratio;}
-  else{canvas.height=wh;canvas.width=wh*ratio;}
+  canvas.width=wrap.clientWidth;canvas.height=wrap.clientHeight;
   W=canvas.width;H=canvas.height;groundY=H*GROUND_Y_RATIO;
 }
 
@@ -1184,23 +1202,27 @@ function resetGameState(){
     shield:false,speedBoost:false,slowMotion:false,shrink:false,activePowerUps:[],
     fallingObjects:[],powerUpItems:[],particles:[],floatTexts:[],bossWarnings:[],
     difficultyFrozen:false,lastSpawnTime:0,nextBossTime:30000,weatherNextChange:15000,
-    weatherShakeFrames:0,weatherFlash:0,stageTransitionUntil:0,timeRemaining:60000,
+    weatherShakeFrames:0,weatherFlash:0,stageTransitionUntil:0,timeRemaining:60000,stageTimeRemaining:30,
     comboTriggered:{},scoreTriggered:{},timeTriggered:{}});
-  GS.reverse=GS.gameMode==='reverse';
-  const dc=DIFF_CONFIG[GS.difficulty];GS.currentFallSpeed=dc.fallSpeed;GS.currentSpawnInterval=dc.spawnInterval;
+  GS.reverse=GS.gameMode==='reverse';GS.stageStartTime=Date.now();
+  const sd=STAGE_DIFFICULTY[1];GS.currentFallSpeed=sd.fallSpeed;GS.currentSpawnInterval=sd.spawnInterval;
 }
 
 // ===== Start Solo Game =====
 function startSoloGame(){
   hideModal('mode-modal');resetGameState();
-  GS.isMulti=false;GS.isHost=true;GS.gameStartTime=Date.now();GS.gameActive=true;
+  GS.gameMode='normal';GS.difficulty='normal';
+  GS.isMulti=false;GS.isHost=true;GS.gameStartTime=Date.now();GS.stageStartTime=Date.now();GS.gameActive=true;
   GS.cpuPlayers=[];
   const levels=['rookie','normal','expert'];
   for(let i=1;i<=3;i++){
-    GS.cpuPlayers.push({pIdx:i,x:W*(0.2+i*0.2),alive:true,level:levels[i-1],
+    GS.cpuPlayers.push({pIdx:i,x:W?(W*(0.2+i*0.2)):200+i*100,alive:true,level:levels[i-1],
       color:PLAYER_COLORS[i].hex,reactionDelay:[500,200,50][i-1],lastDecision:0,score:0});
   }
-  showScreen('game');setupCanvas();SoundMgr.changeBGMForStage(1);
+  showScreen('game');setupCanvas();
+  // Re-position CPUs after canvas setup
+  GS.cpuPlayers.forEach((cpu,i)=>{cpu.x=W*(0.15+(i+1)*0.2);});
+  SoundMgr.changeBGMForStage(1);
   Commentary.queue=[];Commentary.add('c_start',1);gameLoop();
 }
 
@@ -1345,7 +1367,7 @@ function setupUI(){
     }catch(err){if(err==='taken'){document.getElementById('username-error').style.display='block';document.getElementById('username-error').textContent='このネームは他のユーザーが使用中です';SoundMgr.playSE('error');}}
   });
   document.getElementById('btn-guest').addEventListener('click',()=>{GS.username=null;GS.isGuest=true;SoundMgr.playSE('click');showToast('ゲストモードで開始');});
-  document.getElementById('btn-solo').addEventListener('click',()=>{SoundMgr.playSE('click');setupModeModal();showModal('mode-modal');});
+  document.getElementById('btn-solo').addEventListener('click',()=>{SoundMgr.playSE('click');startSoloGame();});
   document.getElementById('btn-multi').addEventListener('click',()=>{SoundMgr.playSE('click');setupMultiModal();showModal('multi-modal');});
   document.getElementById('btn-rules').addEventListener('click',()=>{SoundMgr.playSE('click');document.getElementById('rule-content').innerHTML=t('rule_text');showModal('rule-modal');});
   document.getElementById('btn-ranking').addEventListener('click',()=>{SoundMgr.playSE('click');loadRankings();showModal('ranking-modal');});
