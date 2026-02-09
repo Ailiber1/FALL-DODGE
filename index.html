@@ -2306,7 +2306,8 @@ function loadRankings(mode){
         const div=document.createElement('div');div.className='ranking-entry';
         const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
         const info=mode==='scoreAttack'?'':' (Stage '+e.stage+')';
-        div.innerHTML='<span>'+medal+(i+1)+'. '+e.username+info+'</span><span>'+e.score+'</span>';list.appendChild(div);
+        const scoreLbl=currentLang==='ja'?'スコア: ':'Score: ';
+        div.innerHTML='<span>'+medal+(i+1)+'. '+e.username+info+'</span><span>'+scoreLbl+e.score+'</span>';list.appendChild(div);
       });
     }).catch(()=>{list.innerHTML='<div style="color:var(--text-dim)">取得失敗</div>';});
   }
