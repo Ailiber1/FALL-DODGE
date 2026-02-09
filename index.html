@@ -476,7 +476,7 @@ const BOSS_TYPES = [
   {id:'dresser',w:100,h:90,color:'#996633',name:'タンス'}
 ];
 const POWERUP_TYPES = {
-  shield:{icon:'🛡️',dur:-1,color:'#4488ff',rate:0.08},
+  shield:{icon:'🛡️',dur:5000,color:'#4488ff',rate:0.08},
   speed:{icon:'⚡',dur:5000,color:'#ffcc00',rate:0.10},
   slow:{icon:'🔽',dur:3000,color:'#00ff88',rate:0.07},
   invincible:{icon:'🌟',dur:5000,color:'#ff00ff',rate:0.03,rainbow:true},
@@ -769,7 +769,8 @@ function getHitScale(){return GS.enlarge?1.8:1;}
 function checkCollision(px,py,pw,ph,obj){
   if(GS.dashInvincible)return false;
   if(GS.invincible){spawnParticles(obj.x+obj.w/2,obj.y+obj.h/2,rainbowColor(Date.now()/150),8,5);return false;}
-  if(GS.shield){obj.deflected=true;GS.shield=false;SoundMgr.playSE('shield_break');spawnFloatText(px,py-20,t('shield_break'),'#4488ff',22);
+  if(GS.shield){obj.deflected=true;GS.shield=false;GS.activePowerUps=GS.activePowerUps.filter(p=>p.key!=='shield');
+    SoundMgr.playSE('shield_break');spawnFloatText(px,py-20,t('shield_break'),'#4488ff',22);
     spawnParticles(px+pw/2,py+ph/2,'#4488ff',18,8);Commentary.add('c_shield_break',2);
     // Deflect: fling the object away
     const dx=obj.x+obj.w/2-(px+pw/2);
@@ -1366,7 +1367,6 @@ function gameLoop(){
   }
   // Update active power-ups
   GS.activePowerUps=GS.activePowerUps.filter(p=>{
-    if(p.dur===-1)return GS.shield;
     if(now>p.expiresAt){GS[p.key]=false;return false;}return true;
   });
   // Weather & stage
@@ -1390,7 +1390,7 @@ function gameLoop(){
 function activatePowerUp(type){
   SoundMgr.playSE('powerup');
   const pu=POWERUP_TYPES[type];
-  if(type==='shield'){GS.shield=true;GS.activePowerUps.push({key:'shield',dur:-1,icon:pu.icon});Commentary.add('c_shield',1);}
+  if(type==='shield'){GS.shield=true;GS.activePowerUps.push({key:'shield',dur:pu.dur,expiresAt:Date.now()+pu.dur,icon:pu.icon});Commentary.add('c_shield',1);}
   else if(type==='speed'){GS.speedBoost=true;GS.activePowerUps.push({key:'speedBoost',dur:pu.dur,expiresAt:Date.now()+pu.dur,icon:pu.icon});}
   else if(type==='slow'){GS.slowMotion=true;GS.activePowerUps.push({key:'slowMotion',dur:pu.dur,expiresAt:Date.now()+pu.dur,icon:pu.icon});}
   else if(type==='invincible'){GS.invincible=true;GS.activePowerUps.push({key:'invincible',dur:pu.dur,expiresAt:Date.now()+pu.dur,icon:pu.icon});Commentary.add('c_invincible',2);}
