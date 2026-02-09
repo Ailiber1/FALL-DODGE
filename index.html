@@ -1087,7 +1087,7 @@ const SyncLayer = {
     if(this.roomRef)this.roomRef.child('players/'+idx).update({alive:false,score,deathTimestamp:firebase.database.ServerValue.TIMESTAMP});
   },
   updateFallingObjects(objs){
-    if(this.roomRef)this.roomRef.child('fallingObjects').set(objs.map(o=>({x:o.x,y:o.y,w:o.w,h:o.h,typeId:o.typeId,color:o.color,rotation:o.rotation||0,speed:o.speed,isBoss:o.isBoss||false})));
+    if(this.roomRef)this.roomRef.child('fallingObjects').set(objs.filter(o=>o.typeId!=='wall').map(o=>({x:o.x,y:o.y,w:o.w,h:o.h,typeId:o.typeId,color:o.color,rotation:o.rotation||0,speed:o.speed,isBoss:o.isBoss||false})));
   },
   updatePowerUps(items){
     if(this.roomRef)this.roomRef.child('powerUpItems').set(items.map(p=>({x:p.x,y:p.y,w:p.w,h:p.h,puType:p.puType,color:p.color})));
@@ -1162,24 +1162,32 @@ function trySpawnWallCrush(){
   if(GS.elapsed<nextWallCrush)return;
   // Hidden: 18-30s, Multi Hard: 30-50s (less frequent)
   nextWallCrush=GS.elapsed+(isSecret?18000+Math.random()*12000:30000+Math.random()*20000);
-  const gapW=W*0.18; // Gap width: 18% of screen
-  const gapMin=W*0.1,gapMax=W*0.9-gapW;
-  const gapX=gapMin+Math.random()*(gapMax-gapMin);
-  const blockH=H*0.35;
+  // Use ratios (0-1) so all screens show same layout
+  const gapRatio=0.18; // Gap width: 18% of screen
+  const gapMinR=0.1,gapMaxR=0.9-gapRatio;
+  const gapXR=gapMinR+Math.random()*(gapMaxR-gapMinR);
   const warnDur=2500; // Warning duration
-  // Warning zones: left block and right block with safe gap highlighted
+  // Sync wall crush to all players via Firebase
+  if(GS.isMulti&&GS.roomId){
+    database.ref('rooms/'+GS.roomId+'/wallCrush').set({gapXR,gapRatio,warnDur,timestamp:Date.now()});
+  }
+  spawnWallCrushLocal(gapXR,gapRatio,warnDur);
+}
+
+function spawnWallCrushLocal(gapXR,gapRatio,warnDur){
+  const gapX=gapXR*W;
+  const gapW=gapRatio*W;
+  const blockH=H*0.35;
+  // Warning zones
   GS.bossWarnings.push({x:0,w:gapX,until:Date.now()+warnDur,isWall:true});
   GS.bossWarnings.push({x:gapX+gapW,w:W-(gapX+gapW),until:Date.now()+warnDur,isWall:true});
-  // Safe zone indicator (green flash)
   GS.bossWarnings.push({x:gapX,w:gapW,until:Date.now()+warnDur,isSafe:true});
   SoundMgr.playSE('boss_warn');
   if(currentLang==='ja')Commentary.add('c_boss',3);
   setTimeout(()=>{
     if(!GS.gameActive)return;
-    // Left wall block
     GS.fallingObjects.push({x:0,y:-blockH,w:gapX,h:blockH,speed:GS.currentFallSpeed*0.6,
       typeId:'wall',color:'#880000',rotation:0,rotSpeed:0,isBoss:true,bounced:false,bounceVy:0,bossPoints:3,canBounce:false});
-    // Right wall block
     GS.fallingObjects.push({x:gapX+gapW,y:-blockH,w:W-(gapX+gapW),h:blockH,speed:GS.currentFallSpeed*0.6,
       typeId:'wall',color:'#880000',rotation:0,rotSpeed:0,isBoss:true,bounced:false,bounceVy:0,bossPoints:3,canBounce:false});
   },warnDur);
@@ -1439,6 +1447,16 @@ function render(){
       // Striped hazard pattern
       ctx.strokeStyle='rgba(255,0,0,'+(0.3+0.15*pulse)+')';ctx.lineWidth=2;
       for(let sy=0;sy<groundY;sy+=40){ctx.beginPath();ctx.moveTo(bw.x,sy);ctx.lineTo(bw.x+bw.w,sy+20);ctx.stroke();}
+      // DANGER text
+      if(bw.w>50){
+        ctx.save();
+        ctx.fillStyle='rgba(255,50,50,'+(0.7+0.3*pulse)+')';
+        ctx.font='bold '+Math.max(14,Math.min(bw.w*0.2,28))+'px Courier New';
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText('⚠ DANGER',bw.x+bw.w/2,groundY*0.3);
+        ctx.fillText('⚠ DANGER',bw.x+bw.w/2,groundY*0.7);
+        ctx.restore();
+      }
     } else {
       ctx.fillStyle='rgba(255,0,0,'+(0.15+0.1*pulse)+')';
       ctx.fillRect(bw.x,groundY-80,bw.w,80);
@@ -1612,6 +1630,9 @@ function endGame(hit,cleared){
     GS.weatherShakeFrames=5;render();
   }
   if(GS.isMulti){
+    // Update local state immediately so checkMultiEnd sees it
+    if(GS.players[GS.playerIndex])GS.players[GS.playerIndex].alive=false;
+    if(GS.players[GS.playerIndex])GS.players[GS.playerIndex].score=GS.score;
     SyncLayer.reportDeath(GS.playerIndex,GS.score);
     // Check if game should end
     setTimeout(()=>checkMultiEnd(),500);
@@ -1633,7 +1654,10 @@ function checkMultiEnd(){
   else setTimeout(()=>checkMultiEnd(),1000);
 }
 
+let resultShown=false;
 function showResult(){
+  if(resultShown)return;
+  resultShown=true;
   SoundMgr.stopBGM();
   const box=document.getElementById('result-box');
   if(GS.isMulti){
@@ -1790,6 +1814,7 @@ function resizeCanvas(){
 
 // ===== Reset Game State =====
 function resetGameState(){
+  resultShown=false;
   Object.assign(GS,{score:0,comboCount:0,comboMultiplier:1,maxCombo:0,currentStage:1,weather:'clear',isAlive:true,
     playerX:50,moveLeft:false,moveRight:false,dashActive:false,dashInvincible:false,dashLastTime:0,
     shield:false,speedBoost:false,slowMotion:false,invincible:false,enlarge:false,activePowerUps:[],
@@ -1958,6 +1983,11 @@ function joinRoom(){
       hideModal('multi-modal');showScreen('lobby');setupLobby(roomId);
     } else {
       const players=room.players||{};const count=Object.keys(players).length;
+      // Room exists but no players → stale room, delete and recreate
+      if(count===0){
+        roomRef.remove().then(()=>{joinRoom();});
+        return;
+      }
       if(count>=4){
         showToast(currentLang==='ja'?'⚠ ルーム「'+roomId+'」は満員です（4/4人）。\n別のルームIDで作成してください。':'⚠ Room "'+roomId+'" is full (4/4).\nPlease create a different Room ID.',4000);
         SoundMgr.playSE('error');
@@ -2094,11 +2124,6 @@ function setupLobby(roomId){
   document.getElementById('btn-start-game').onclick=()=>{roomRef.child('status').set('playing');};
   document.getElementById('btn-leave-lobby').onclick=()=>{cleanupRoom(roomId,GS.playerIndex);SyncLayer.disconnect();GS.isMulti=false;GS.roomId=null;showScreen('title');};
   roomRef.child('players/'+GS.playerIndex).onDisconnect().remove();
-  // If all players disconnect, remove the entire room
-  roomRef.child('players').on('value',snap=>{
-    const remaining=snap.val();
-    if(!remaining||Object.keys(remaining).length===0){roomRef.remove();}
-  });
 }
 function startMultiGame(){
   resetGameState();GS.isMulti=true;GS.cpuPlayers=[];
@@ -2122,8 +2147,18 @@ function startMultiGame(){
     badge.id='badge-'+idx;hpEl.appendChild(badge);
   });
   if(!GS.isHost){
-    SyncLayer.onFallingObjectsUpdate(objs=>{if(objs)GS.fallingObjects=objs;});
+    SyncLayer.onFallingObjectsUpdate(objs=>{if(objs){const localWalls=GS.fallingObjects.filter(o=>o.typeId==='wall');GS.fallingObjects=objs.concat(localWalls);}});
     SyncLayer.onPowerUpsUpdate(items=>{if(items)GS.powerUpItems=items;});
+    // Listen for wall crush events from host
+    let lastWallCrushTs=0;
+    const wcRef=database.ref('rooms/'+GS.roomId+'/wallCrush');
+    wcRef.on('value',snap=>{
+      const wc=snap.val();
+      if(!wc||wc.timestamp<=lastWallCrushTs)return;
+      lastWallCrushTs=wc.timestamp;
+      spawnWallCrushLocal(wc.gapXR,wc.gapRatio,wc.warnDur);
+    });
+    SyncLayer.listeners.push(wcRef);
   }
   SyncLayer.onPlayersUpdate(players=>{
     if(!players)return;GS.players=players;
@@ -2139,7 +2174,7 @@ function startMultiGame(){
     } else {
       if(alive.length<=1)gameEnded=true;
     }
-    if(gameEnded&&GS.gameActive){GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);setTimeout(()=>showResult(),500);}
+    if(gameEnded&&!resultShown){GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);setTimeout(()=>showResult(),500);}
   });
   showCountdown(()=>{
     GS.gameStartTime=Date.now();GS.gameActive=true;
@@ -2261,15 +2296,24 @@ function cleanupCountdown(){
 function cleanupRoom(roomId,playerIndex){
   if(!roomId)return;
   const rRef=database.ref('rooms/'+roomId);
+  // Cancel onDisconnect so it doesn't interfere
+  rRef.child('players/'+playerIndex).onDisconnect().cancel();
+  // Remove player, readyPlayer, then check if room is empty
+  rRef.child('readyPlayers/'+playerIndex).remove();
   rRef.child('players/'+playerIndex).remove().then(()=>{
+    return rRef.child('players').once('value');
+  }).then(snap=>{
+    const remaining=snap.val();
+    if(!remaining||Object.keys(remaining).length===0){
+      rRef.remove();
+    }
+  }).catch(()=>{
+    // Fallback: try to remove room entirely if error
     rRef.child('players').once('value',snap=>{
       const remaining=snap.val();
-      if(!remaining||Object.keys(remaining).length===0){
-        rRef.remove();
-      }
+      if(!remaining||Object.keys(remaining).length===0)rRef.remove();
     });
   });
-  rRef.child('readyPlayers/'+playerIndex).remove();
 }
 function multiBackToTitle(){
   cleanupCountdown();
