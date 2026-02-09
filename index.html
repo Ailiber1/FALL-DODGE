@@ -2,13 +2,13 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
 <title>FALL DODGE</title>
 <style>
 :root{--neon-green:#00ff41;--neon-green-dim:#00aa2a;--neon-green-glow:rgba(0,255,65,0.6);--neon-cyan:#00ffff;--neon-pink:#ff00ff;--neon-yellow:#ffff00;--neon-red:#ff3366;--neon-gold:#ffcc00;--neon-purple:#b450ff;--bg-dark:#000a04;--bg-darker:#050505;--bg-panel:rgba(0,20,10,0.85);--text-primary:#c0ffc0;--text-dim:#4a8a4a;--border-glow:0 0 8px var(--neon-green),inset 0 0 8px rgba(0,255,65,0.1)}
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:radial-gradient(ellipse at 50% 40%,#002a10 0%,#001208 40%,#000a04 70%,#000502 100%);color:var(--text-primary);font-family:'Courier New',monospace;overflow:hidden;width:100vw;height:100vh;position:relative}
-.screen{display:none;position:absolute;top:0;left:0;width:100%;height:100%;z-index:10}
+body{background:radial-gradient(ellipse at 50% 40%,#002a10 0%,#001208 40%,#000a04 70%,#000502 100%);color:var(--text-primary);font-family:'Courier New',monospace;overflow:hidden;width:100vw;height:100vh;height:100dvh;position:relative}
+.screen{display:none;position:absolute;top:0;left:0;width:100%;height:100%;height:100dvh;z-index:10}
 .screen.active{display:flex;flex-direction:column;align-items:center;justify-content:center}
 #matrix-bg{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;opacity:0.3}
 #splash-screen{z-index:100;background:var(--bg-dark);justify-content:center;align-items:center}
@@ -41,6 +41,8 @@ body{background:radial-gradient(ellipse at 50% 40%,#002a10 0%,#001208 40%,#000a0
 .lang-btn{background:transparent;border:1px solid var(--neon-green-dim);color:var(--text-dim);font-family:inherit;font-size:11px;padding:4px 14px;cursor:pointer;transition:all 0.2s;letter-spacing:0.5px}
 .lang-btn:hover{border-color:var(--neon-green);color:var(--neon-green)}
 .lang-btn.active{border-color:var(--neon-green);color:var(--neon-green);background:rgba(0,255,65,0.1);text-shadow:0 0 6px var(--neon-green-glow)}
+.switch-sep{color:var(--text-dim);font-size:11px;line-height:1;display:flex;align-items:center}
+.lang-btn.bgm-off{border-color:var(--neon-red);color:var(--neon-red);background:rgba(255,51,102,0.1);text-shadow:0 0 6px rgba(255,51,102,0.4)}
 .modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:50;justify-content:center;align-items:center}
 .modal-overlay.active{display:flex}
 .modal{background:var(--bg-panel);border:1px solid var(--neon-green-dim);box-shadow:var(--border-glow);padding:28px 32px;width:92%;max-width:520px;max-height:85vh;overflow-y:auto;position:relative}
@@ -80,8 +82,8 @@ body{background:radial-gradient(ellipse at 50% 40%,#002a10 0%,#001208 40%,#000a0
 .pause-box .btn{margin:6px 0;width:100%}
 .game-canvas-wrap{flex:1;width:100%;display:flex;justify-content:center;align-items:center;overflow:hidden;position:relative}
 #gameCanvas{background:#000a04;display:block;width:100%;height:100%}
-.mobile-controls{width:100%;padding:8px 10px;background:rgba(0,10,5,0.95);border-top:1px solid var(--neon-green-dim);display:flex;justify-content:space-between;align-items:center;gap:8px;z-index:5}
-.ctrl-btn{padding:14px 24px;border:1px solid var(--neon-green-dim);color:var(--neon-green);font-family:inherit;font-size:16px;background:rgba(0,20,10,0.8);cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;min-width:70px;text-align:center}
+.mobile-controls{width:100%;padding:10px 10px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));background:rgba(0,10,5,0.95);border-top:1px solid var(--neon-green-dim);display:flex;justify-content:space-between;align-items:center;gap:8px;z-index:5}
+.ctrl-btn{padding:18px 28px;border:1px solid var(--neon-green-dim);color:var(--neon-green);font-family:inherit;font-size:18px;background:rgba(0,20,10,0.8);cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;min-width:80px;min-height:56px;text-align:center}
 .ctrl-btn:active{background:rgba(0,255,65,0.15);box-shadow:var(--border-glow)}
 .dash-gauge{flex:1;text-align:center;font-size:11px;color:var(--text-dim)}
 .dash-gauge .gauge-bar{width:100%;height:6px;background:#001a0a;border:1px solid var(--neon-green-dim);margin-top:2px}
@@ -111,7 +113,7 @@ body{background:radial-gradient(ellipse at 50% 40%,#002a10 0%,#001208 40%,#000a0
 .lobby-player .dot{width:10px;height:10px;border-radius:50%}
 .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,20,10,0.95);border:1px solid var(--neon-green);color:var(--neon-green);padding:10px 24px;font-size:13px;z-index:100;animation:float-in 0.3s ease-out}
 .error-text{color:var(--neon-red);font-size:12px;margin-top:4px;display:none}
-@media(max-width:600px){.panel{padding:15px;width:95%}.btn{padding:10px;font-size:13px}.ctrl-btn{padding:16px 20px;font-size:18px}}
+@media(max-width:600px){.panel{padding:15px;width:95%}.btn{padding:10px;font-size:13px}.ctrl-btn{padding:20px 24px;font-size:20px;min-height:60px}}
 @media(hover:hover) and (pointer:fine){.mobile-controls{display:none}}
 </style>
 </head>
@@ -146,6 +148,8 @@ body{background:radial-gradient(ellipse at 50% 40%,#002a10 0%,#001208 40%,#000a0
 <div class="lang-switch" id="lang-switch">
 <button class="lang-btn" data-lang="ja">日本語</button>
 <button class="lang-btn" data-lang="en">English</button>
+<span class="switch-sep">│</span>
+<button class="lang-btn active" id="btn-bgm-toggle">🔊 BGM</button>
 </div>
 </div>
 <div style="height:40px"></div>
@@ -354,6 +358,7 @@ const SoundMgr = {
     if(this.bgm){this.bgm.pause();this.bgm.currentTime=0;}
     this.bgm=new Audio(url);this.bgm.loop=true;this.bgm.volume=0.4;
     this.pendingBGM=null;
+    if(!this.bgmEnabled)return;
     const p=this.bgm.play();
     if(p)p.catch(()=>{this.pendingBGM=url;});
   },
@@ -1795,12 +1800,26 @@ function setupUI(){
   document.getElementById('btn-rules').addEventListener('click',()=>{SoundMgr.playSE('click');document.getElementById('rule-content').innerHTML=t('rule_text');showModal('rule-modal');});
   document.getElementById('btn-ranking').addEventListener('click',()=>{SoundMgr.playSE('click');loadRankings();showModal('ranking-modal');});
   // Language switch buttons
-  document.querySelectorAll('.lang-btn').forEach(btn=>{
+  document.querySelectorAll('.lang-btn[data-lang]').forEach(btn=>{
     btn.addEventListener('click',()=>{
       SoundMgr.playSE('click');switchLanguage(btn.dataset.lang);updateLangButtons();
     });
   });
-  function updateLangButtons(){document.querySelectorAll('.lang-btn').forEach(b=>b.classList.toggle('active',b.dataset.lang===currentLang));}
+  function updateLangButtons(){document.querySelectorAll('.lang-btn[data-lang]').forEach(b=>b.classList.toggle('active',b.dataset.lang===currentLang));}
+  // BGM toggle button
+  document.getElementById('btn-bgm-toggle').addEventListener('click',()=>{
+    SoundMgr.bgmEnabled=!SoundMgr.bgmEnabled;
+    const btn=document.getElementById('btn-bgm-toggle');
+    if(SoundMgr.bgmEnabled){
+      btn.textContent='🔊 BGM';btn.classList.remove('bgm-off');btn.classList.add('active');
+      if(SoundMgr.bgm){SoundMgr.bgm.play().catch(()=>{});}
+      else{SoundMgr.playBGM('FALL DODGE_OP.mp3');}
+    } else {
+      btn.textContent='🔇 BGM';btn.classList.add('bgm-off');btn.classList.remove('active');
+      if(SoundMgr.bgm){SoundMgr.bgm.pause();}
+    }
+    SoundMgr.playSE('click');
+  });
   document.getElementById('btn-join-room').addEventListener('click',()=>{SoundMgr.playSE('click');joinRoom();});
   document.getElementById('btn-start-solo').addEventListener('click',()=>{SoundMgr.playSE('click');startSoloGame();});
   document.getElementById('btn-score-attack').addEventListener('click',()=>{SoundMgr.playSE('click');startScoreAttack();});
@@ -1868,54 +1887,55 @@ let titleAnimId=null;
 function drawStickPose(cx,x,y,color,pose,tilt,scale,alpha){
   cx.save();cx.globalAlpha=alpha||1;
   const s=scale||1;const headR=8*s;
-  // Apply tilt rotation around feet
   if(tilt){cx.translate(x,y+14*s);cx.rotate(tilt);cx.translate(-x,-(y+14*s));}
   const hx=x,hy=y-30*s;
-  // Shadow
   cx.fillStyle='rgba(0,0,0,0.3)';cx.beginPath();cx.ellipse(x,y+14*s,12*s,4*s,0,0,Math.PI*2);cx.fill();
-  // Head
   const grad=cx.createRadialGradient(hx-2*s,hy-2*s,1,hx,hy,headR);
   grad.addColorStop(0,'rgba(255,255,255,0.6)');grad.addColorStop(0.5,color);grad.addColorStop(1,shadeColor(color,-40));
   cx.fillStyle=grad;cx.beginPath();cx.arc(hx,hy,headR,0,Math.PI*2);cx.fill();
   cx.fillStyle='rgba(255,255,255,0.4)';cx.beginPath();cx.ellipse(hx-2*s,hy-3*s,3*s,2*s,0,0,Math.PI*2);cx.fill();
-  // Body
   cx.strokeStyle=color;cx.lineWidth=3*s;cx.lineCap='round';
   cx.beginPath();cx.moveTo(hx,hy+headR);cx.lineTo(hx,y-2*s);cx.stroke();
   cx.strokeStyle=color;cx.lineWidth=2.5*s;
+  const t=Date.now()/150;
   if(pose==='stumble'){
-    // Arms flailing
-    const t=Date.now()/80;
-    cx.beginPath();cx.moveTo(hx,hy+headR+4*s);cx.lineTo(hx-14*s*Math.sin(t),hy-4*s);cx.stroke();
-    cx.beginPath();cx.moveTo(hx,hy+headR+4*s);cx.lineTo(hx+14*s*Math.cos(t),hy-2*s);cx.stroke();
+    const ft=Date.now()/80;
+    cx.beginPath();cx.moveTo(hx,hy+headR+4*s);cx.lineTo(hx-14*s*Math.sin(ft),hy-4*s);cx.stroke();
+    cx.beginPath();cx.moveTo(hx,hy+headR+4*s);cx.lineTo(hx+14*s*Math.cos(ft),hy-2*s);cx.stroke();
     cx.beginPath();cx.moveTo(hx,y-2*s);cx.lineTo(hx-6*s,y+12*s);cx.stroke();
     cx.beginPath();cx.moveTo(hx,y-2*s);cx.lineTo(hx+10*s,y+10*s);cx.stroke();
   } else if(pose==='dizzy'){
-    // Sitting with stars
     cx.beginPath();cx.moveTo(hx,hy+headR+4*s);cx.lineTo(hx-12*s,y+4*s);cx.stroke();
     cx.beginPath();cx.moveTo(hx,hy+headR+4*s);cx.lineTo(hx+6*s,y+2*s);cx.stroke();
     cx.beginPath();cx.moveTo(hx,y-2*s);cx.lineTo(hx-8*s,y+14*s);cx.stroke();
     cx.beginPath();cx.moveTo(hx,y-2*s);cx.lineTo(hx+8*s,y+14*s);cx.stroke();
-    // Stars spinning around head
     const st=Date.now()/300;
     cx.font=(9*s)+'px sans-serif';cx.textAlign='center';cx.globalAlpha=0.9;
-    for(let i=0;i<3;i++){
-      const a=st+i*2.1;const sr=14*s;
-      cx.fillText('✦',hx+Math.cos(a)*sr,hy-8*s+Math.sin(a)*sr*0.5);
-    }
+    for(let i=0;i<3;i++){const a=st+i*2.1;const sr=14*s;cx.fillText('✦',hx+Math.cos(a)*sr,hy-8*s+Math.sin(a)*sr*0.5);}
+  } else if(pose==='help'){
+    // Reaching hand out
+    cx.beginPath();cx.moveTo(hx,hy+headR+4*s);cx.lineTo(hx+16*s,hy+headR);cx.stroke();
+    cx.beginPath();cx.moveTo(hx,hy+headR+4*s);cx.lineTo(hx-10*s,hy+headR+16*s);cx.stroke();
+    cx.beginPath();cx.moveTo(hx,y-2*s);cx.lineTo(hx-7*s,y+14*s);cx.stroke();
+    cx.beginPath();cx.moveTo(hx,y-2*s);cx.lineTo(hx+7*s,y+14*s);cx.stroke();
+    // Hand circle
+    cx.fillStyle=color;cx.beginPath();cx.arc(hx+16*s,hy+headR,3*s,0,Math.PI*2);cx.fill();
+  } else if(pose==='helped'){
+    // Being pulled up - lean and reach
+    cx.beginPath();cx.moveTo(hx,hy+headR+4*s);cx.lineTo(hx-16*s,hy+headR);cx.stroke();
+    cx.beginPath();cx.moveTo(hx,hy+headR+4*s);cx.lineTo(hx+8*s,hy+headR+14*s);cx.stroke();
+    cx.beginPath();cx.moveTo(hx,y-2*s);cx.lineTo(hx-6*s,y+12*s);cx.stroke();
+    cx.beginPath();cx.moveTo(hx,y-2*s);cx.lineTo(hx+8*s,y+14*s);cx.stroke();
+  } else if(pose==='run'){
+    cx.beginPath();cx.moveTo(hx,hy+headR+4*s);cx.lineTo(hx-10*s*Math.sin(t),hy+headR+14*s);cx.stroke();
+    cx.beginPath();cx.moveTo(hx,hy+headR+4*s);cx.lineTo(hx+10*s*Math.sin(t),hy+headR+14*s);cx.stroke();
+    cx.beginPath();cx.moveTo(hx,y-2*s);cx.lineTo(hx-8*s*Math.sin(t),y+12*s);cx.stroke();
+    cx.beginPath();cx.moveTo(hx,y-2*s);cx.lineTo(hx+8*s*Math.sin(t),y+12*s);cx.stroke();
   } else {
-    // Default: run/stand (delegate to original)
-    const t=Date.now()/150;
-    if(pose==='run'){
-      cx.beginPath();cx.moveTo(hx,hy+headR+4*s);cx.lineTo(hx-10*s*Math.sin(t),hy+headR+14*s);cx.stroke();
-      cx.beginPath();cx.moveTo(hx,hy+headR+4*s);cx.lineTo(hx+10*s*Math.sin(t),hy+headR+14*s);cx.stroke();
-      cx.beginPath();cx.moveTo(hx,y-2*s);cx.lineTo(hx-8*s*Math.sin(t),y+12*s);cx.stroke();
-      cx.beginPath();cx.moveTo(hx,y-2*s);cx.lineTo(hx+8*s*Math.sin(t),y+12*s);cx.stroke();
-    } else {
-      cx.beginPath();cx.moveTo(hx,hy+headR+4*s);cx.lineTo(hx-10*s,hy+headR+16*s);cx.stroke();
-      cx.beginPath();cx.moveTo(hx,hy+headR+4*s);cx.lineTo(hx+10*s,hy+headR+16*s);cx.stroke();
-      cx.beginPath();cx.moveTo(hx,y-2*s);cx.lineTo(hx-7*s,y+14*s);cx.stroke();
-      cx.beginPath();cx.moveTo(hx,y-2*s);cx.lineTo(hx+7*s,y+14*s);cx.stroke();
-    }
+    cx.beginPath();cx.moveTo(hx,hy+headR+4*s);cx.lineTo(hx-10*s,hy+headR+16*s);cx.stroke();
+    cx.beginPath();cx.moveTo(hx,hy+headR+4*s);cx.lineTo(hx+10*s,hy+headR+16*s);cx.stroke();
+    cx.beginPath();cx.moveTo(hx,y-2*s);cx.lineTo(hx-7*s,y+14*s);cx.stroke();
+    cx.beginPath();cx.moveTo(hx,y-2*s);cx.lineTo(hx+7*s,y+14*s);cx.stroke();
   }
   cx.restore();
 }
@@ -1923,15 +1943,58 @@ function drawTitleChars(){
   const tc=document.getElementById('titleCanvas');if(!tc)return;
   const tctx=tc.getContext('2d');
   const W=tc.width,H=tc.height;
-  // Per-character state with fall cycle
   const chars=[
-    {pIdx:0,baseX:55, speed:0.6,range:20,offset:0,      fallAt:4.5,fallDur:2.5},
-    {pIdx:1,baseX:145,speed:0.8,range:25,offset:1.2,     fallAt:8.0,fallDur:2.8},
-    {pIdx:2,baseX:255,speed:0.7,range:18,offset:2.5,     fallAt:2.0,fallDur:2.2},
-    {pIdx:3,baseX:345,speed:0.9,range:22,offset:3.8,     fallAt:6.0,fallDur:3.0}
+    {pIdx:0,baseX:55, speed:0.6,range:20,offset:0},
+    {pIdx:1,baseX:145,speed:0.8,range:25,offset:1.2},
+    {pIdx:2,baseX:255,speed:0.7,range:18,offset:2.5},
+    {pIdx:3,baseX:345,speed:0.9,range:22,offset:3.8}
   ];
-  // Each char falls on a cycle: normal → stumble → fall → dizzy → getup → normal
-  const cyclePeriod=12;// seconds per full cycle
+  // Event-driven fall system
+  // event types: 'solo' (1 falls), 'duo' (2 fall together), 'help' (1 falls, neighbor helps)
+  const eventTypes=['solo','solo','solo','duo','help','help'];
+  let currentEvent=null;
+  let nextEventTime=Date.now()/1000+2;
+  // Per-char fall state: null or {phase,startTime,dir}
+  const fallState=[null,null,null,null];
+  // Helper state: which char is helping, and target
+  let helpInfo=null;// {helper:idx, target:idx, startTime}
+  const PHASES={stumble:0.4,falling:0.3,ground:1.2,getup:0.6};
+  const TOTAL_FALL=PHASES.stumble+PHASES.falling+PHASES.ground+PHASES.getup;
+  const HELP_PHASES={approach:0.6,reach:0.8,pullup:0.6,retreat:0.5};
+  const TOTAL_HELP=HELP_PHASES.approach+HELP_PHASES.reach+HELP_PHASES.pullup+HELP_PHASES.retreat;
+
+  function scheduleNext(){
+    nextEventTime=Date.now()/1000+3+Math.random()*4;
+    currentEvent=eventTypes[Math.floor(Math.random()*eventTypes.length)];
+  }
+  function triggerEvent(){
+    const available=[];
+    for(let i=0;i<4;i++){if(!fallState[i]&&(!helpInfo||helpInfo.helper!==i))available.push(i);}
+    if(available.length<1){scheduleNext();return;}
+    const now=Date.now()/1000;
+    if(currentEvent==='solo'){
+      const idx=available[Math.floor(Math.random()*available.length)];
+      fallState[idx]={startTime:now,dir:Math.random()>0.5?1:-1};
+    } else if(currentEvent==='duo'){
+      if(available.length<2){fallState[available[0]]={startTime:now,dir:Math.random()>0.5?1:-1};}
+      else{
+        const shuffled=available.sort(()=>Math.random()-0.5);
+        fallState[shuffled[0]]={startTime:now,dir:1};
+        fallState[shuffled[1]]={startTime:now+0.15,dir:-1};
+      }
+    } else if(currentEvent==='help'){
+      const target=available[Math.floor(Math.random()*available.length)];
+      fallState[target]={startTime:now,dir:Math.random()>0.5?1:-1};
+      const helpers=available.filter(i=>i!==target);
+      if(helpers.length>0){
+        // Pick nearest neighbor
+        const helper=helpers.reduce((a,b)=>Math.abs(a-target)<Math.abs(b-target)?a:b);
+        helpInfo={helper,target,startTime:now+PHASES.stumble+PHASES.falling+0.3};
+      }
+    }
+    scheduleNext();
+  }
+
   if(titleAnimId)cancelAnimationFrame(titleAnimId);
   function animate(){
     titleAnimId=requestAnimationFrame(animate);
@@ -1941,46 +2004,80 @@ function drawTitleChars(){
     drawBlockText(tctx,'DODGE',W/2,82,bs,'#00ff41','rgba(0,255,65,0.7)');
     const now=Date.now()/1000;
     const figY=185;
-    chars.forEach(ch=>{
-      const cycleT=(now+ch.fallAt)%cyclePeriod;
-      const fallStart=ch.fallAt;
-      const fd=ch.fallDur;
-      let pose='run',tilt=0,alpha=1,px;
+    // Trigger events
+    if(now>=nextEventTime)triggerEvent();
+    // Clear finished help
+    if(helpInfo&&now-helpInfo.startTime>TOTAL_HELP)helpInfo=null;
+    // Compute per-char positions and poses
+    const positions=[];
+    chars.forEach((ch,i)=>{
       const wave=Math.sin(now*ch.speed*2+ch.offset)*ch.range;
-      px=ch.baseX+wave;
-      // Phase: stumble(0.4s) → falling(0.3s) → dizzy(1.0s) → getup(0.5s)
-      const stumbleT=fallStart;
-      const fallingT=stumbleT+0.4;
-      const groundT=fallingT+0.3;
-      const dizzyT=groundT+1.0;
-      const getupT=dizzyT+0.5;
-      if(cycleT>=stumbleT&&cycleT<fallingT){
-        // Stumble - arms flailing, slight tilt
-        pose='stumble';
-        const p=(cycleT-stumbleT)/0.4;
-        tilt=p*0.3*(ch.offset>2?-1:1);
-      } else if(cycleT>=fallingT&&cycleT<groundT){
-        // Falling down
-        pose='stumble';
-        const p=(cycleT-fallingT)/0.3;
-        tilt=(0.3+p*1.2)*(ch.offset>2?-1:1);
-      } else if(cycleT>=groundT&&cycleT<dizzyT){
-        // On the ground dizzy
-        pose='dizzy';
-        tilt=1.5*(ch.offset>2?-1:1);
-        // Slight wobble
-        tilt+=Math.sin(now*8)*0.05;
-      } else if(cycleT>=dizzyT&&cycleT<getupT){
-        // Getting up
-        pose='run';
-        const p=(cycleT-dizzyT)/0.5;
-        tilt=(1-p)*1.5*(ch.offset>2?-1:1);
+      positions.push(ch.baseX+wave);
+    });
+
+    chars.forEach((ch,i)=>{
+      let pose='run',tilt=0,px=positions[i];
+      const fs=fallState[i];
+      if(fs){
+        const elapsed=now-fs.startTime;
+        if(elapsed<0){
+          // Not started yet (duo delay)
+          const moving=Math.abs(Math.cos(now*ch.speed*2+ch.offset))>0.2;
+          pose=moving?'run':'stand';
+        } else if(elapsed<PHASES.stumble){
+          pose='stumble';tilt=(elapsed/PHASES.stumble)*0.3*fs.dir;
+        } else if(elapsed<PHASES.stumble+PHASES.falling){
+          pose='stumble';
+          const p=(elapsed-PHASES.stumble)/PHASES.falling;
+          tilt=(0.3+p*1.2)*fs.dir;
+        } else if(elapsed<PHASES.stumble+PHASES.falling+PHASES.ground){
+          // Check if being helped - shorten ground time
+          if(helpInfo&&helpInfo.target===i){
+            const helpElapsed=now-helpInfo.startTime;
+            if(helpElapsed>=HELP_PHASES.approach+HELP_PHASES.reach){
+              pose='helped';tilt=Math.max(0,1.5-((helpElapsed-HELP_PHASES.approach-HELP_PHASES.reach)/HELP_PHASES.pullup)*1.5)*fs.dir;
+            } else {pose='dizzy';tilt=1.5*fs.dir+Math.sin(now*8)*0.05;}
+          } else {pose='dizzy';tilt=1.5*fs.dir+Math.sin(now*8)*0.05;}
+        } else if(elapsed<TOTAL_FALL){
+          pose='run';const p=(elapsed-(TOTAL_FALL-PHASES.getup))/PHASES.getup;
+          tilt=Math.max(0,(1-p)*1.5*fs.dir);
+        } else {fallState[i]=null;}
       } else {
         // Normal movement
         const moving=Math.abs(Math.cos(now*ch.speed*2+ch.offset))>0.2;
         pose=moving?'run':'stand';
       }
-      drawStickPose(tctx,px,figY,PLAYER_COLORS[ch.pIdx].hex,pose,tilt,0.8,alpha);
+      // Helper approaching target
+      if(helpInfo&&helpInfo.helper===i&&!fallState[i]){
+        const helpElapsed=now-helpInfo.startTime;
+        const targetX=positions[helpInfo.target];
+        const helperBaseX=positions[i];
+        const dir=targetX>helperBaseX?1:-1;
+        if(helpElapsed<HELP_PHASES.approach){
+          // Run toward target
+          const p=helpElapsed/HELP_PHASES.approach;
+          px=helperBaseX+(targetX-helperBaseX+20*dir)*p*0.7;
+          pose='run';
+        } else if(helpElapsed<HELP_PHASES.approach+HELP_PHASES.reach){
+          // Standing next to target, reaching hand
+          px=helperBaseX+(targetX-helperBaseX+20*dir)*0.7;
+          pose='help';
+        } else if(helpElapsed<HELP_PHASES.approach+HELP_PHASES.reach+HELP_PHASES.pullup){
+          // Pulling up
+          px=helperBaseX+(targetX-helperBaseX+20*dir)*0.7;
+          pose='help';
+        } else if(helpElapsed<TOTAL_HELP){
+          // Retreat back
+          const p=(helpElapsed-(TOTAL_HELP-HELP_PHASES.retreat))/HELP_PHASES.retreat;
+          const nearX=helperBaseX+(targetX-helperBaseX+20*dir)*0.7;
+          px=nearX+(helperBaseX-nearX)*p;
+          pose='run';
+        } else {
+          // Done helping, clear target fall
+          if(fallState[helpInfo.target])fallState[helpInfo.target]=null;
+        }
+      }
+      drawStickPose(tctx,px,figY,PLAYER_COLORS[ch.pIdx].hex,pose,tilt,0.8,1);
     });
   }
   animate();
