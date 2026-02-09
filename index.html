@@ -66,6 +66,12 @@ body{background:var(--bg-dark);color:var(--text-primary);font-family:'Courier Ne
 .hud-extra{font-size:13px;color:var(--text-dim);display:flex;gap:8px;align-items:center}
 .hud-row2{display:flex;gap:6px;padding:3px 12px;align-items:center;border-top:1px solid rgba(0,255,65,0.1)}
 .hud-row2 .p-badge{padding:2px 10px;border:1px solid;font-size:12px;font-weight:bold;white-space:nowrap}
+.hud-pause-btn{background:none;border:1px solid var(--neon-green-dim);color:var(--neon-green);font-size:18px;cursor:pointer;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;padding:0;transition:all 0.2s;font-family:inherit}
+.hud-pause-btn:hover{border-color:var(--neon-green);box-shadow:var(--border-glow)}
+.pause-overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,5,2,0.85);z-index:15;display:flex;align-items:center;justify-content:center}
+.pause-box{text-align:center;padding:30px;border:1px solid var(--neon-green-dim);background:rgba(0,15,8,0.95);max-width:300px;width:80%}
+.pause-box h2{color:var(--neon-green);font-size:28px;margin-bottom:20px;text-shadow:0 0 20px var(--neon-green-glow)}
+.pause-box .btn{margin:6px 0;width:100%}
 .game-canvas-wrap{flex:1;width:100%;display:flex;justify-content:center;align-items:center;overflow:hidden;position:relative}
 #gameCanvas{background:#000a04;display:block;width:100%;height:100%}
 .mobile-controls{width:100%;padding:8px 10px;background:rgba(0,10,5,0.95);border-top:1px solid var(--neon-green-dim);display:flex;justify-content:space-between;align-items:center;gap:8px;z-index:5}
@@ -151,11 +157,19 @@ body{background:var(--bg-dark);color:var(--text-primary);font-family:'Courier Ne
   <div class="hud-right">
     <span class="hud-extra"><span id="hud-weather"></span><span id="hud-powerup"></span></span>
     <span class="hud-time" id="hud-time"></span>
+    <button class="hud-pause-btn" id="btn-pause" title="中断">⏸</button>
   </div>
 </div>
 <div class="hud-row2" id="hud-players" style="display:none"></div>
 </div>
 <div class="game-canvas-wrap"><canvas id="gameCanvas"></canvas>
+<div id="pause-overlay" class="pause-overlay" style="display:none">
+<div class="pause-box">
+<h2>PAUSED</h2>
+<button class="btn" id="btn-resume">▶ 再開</button>
+<button class="btn btn-sub" id="btn-quit-game">タイトルに戻る</button>
+</div>
+</div>
 <div id="countdown-overlay" style="display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,5,2,0.7);z-index:10;display:none;align-items:center;justify-content:center">
 <span id="countdown-text" style="font-size:clamp(80px,20vw,160px);font-weight:bold;color:var(--neon-green);text-shadow:0 0 40px var(--neon-green-glow),0 0 80px var(--neon-green-glow);font-family:inherit"></span>
 </div>
@@ -1232,6 +1246,8 @@ function endGame(hit,cleared){
   GS.gameActive=false;if(hit)GS.isAlive=false;
   if(GS.animationId)cancelAnimationFrame(GS.animationId);
   GS.allCleared=cleared||false;
+  GS.lastDeathStage=GS.currentStage;
+  GS.lastCpuSetup=[...cpuSetup];
   if(hit){
     SoundMgr.playSE('hit');
     spawnParticles(GS.playerX/100*W+GS.playerWidth/2,groundY-GS.playerHeight/2,'#ff3366',20,10);
@@ -1295,9 +1311,15 @@ function showResult(){
       submitScore();
       html+='<div style="color:var(--neon-gold);font-size:12px;margin:8px 0">📊 ランキング登録完了</div>';
     }
-    const retryFn=isScoreAtk?'startScoreAttack()':'startSoloGame()';
-    html+='<div class="result-btns"><button class="btn" onclick="'+retryFn+'">'+t('retry')+'</button>';
-    html+='<button class="btn btn-sub" onclick="backToTitle()">'+t('back_to_title')+'</button></div>';
+    if(isScoreAtk){
+      html+='<div class="result-btns"><button class="btn" onclick="startScoreAttack()">'+t('retry')+'</button>';
+      html+='<button class="btn btn-sub" onclick="backToTitle()">'+t('back_to_title')+'</button></div>';
+    } else {
+      const stLabel=currentLang==='ja'?'ステージ'+GS.currentStage+'からリトライ':'Retry from Stage '+GS.currentStage;
+      html+='<div class="result-btns"><button class="btn" onclick="retrySameStage()">🔄 '+stLabel+'</button>';
+      html+='<button class="btn" onclick="startSoloGame()">↩ '+(currentLang==='ja'?'ステージ1からやり直す':'Restart from Stage 1')+'</button>';
+      html+='<button class="btn btn-sub" onclick="backToTitle()">'+t('back_to_title')+'</button></div>';
+    }
     box.innerHTML=html;
     showScreen('result');
     setTimeout(()=>{
@@ -1352,6 +1374,66 @@ function resetGameState(){
     comboTriggered:{},scoreTriggered:{},timeTriggered:{}});
   GS.reverse=GS.gameMode==='reverse';GS.stageStartTime=Date.now();
   const sd=STAGE_DIFFICULTY[1];GS.currentFallSpeed=sd.fallSpeed;GS.currentSpawnInterval=sd.spawnInterval;
+}
+
+// ===== Pause =====
+let pausedTime=0;let pauseStart=0;
+function pauseGame(){
+  if(!GS.gameActive||GS.gameMode==='scoreAttack'&&!GS.gameActive)return;
+  GS.gameActive=false;pauseStart=Date.now();
+  if(GS.animationId)cancelAnimationFrame(GS.animationId);
+  document.getElementById('pause-overlay').style.display='flex';
+}
+function resumeGame(){
+  document.getElementById('pause-overlay').style.display='none';
+  const pausedDur=Date.now()-pauseStart;
+  GS.gameStartTime+=pausedDur;GS.stageStartTime+=pausedDur;
+  GS.gameActive=true;gameLoop();
+}
+function quitGame(){
+  document.getElementById('pause-overlay').style.display='none';
+  GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);
+  backToTitle();
+}
+
+// ===== Retry Same Stage =====
+function retrySameStage(){
+  const stage=GS.lastDeathStage||1;
+  const savedCpuSetup=GS.lastCpuSetup||[];
+  resetGameState();
+  GS.gameMode='normal';GS.difficulty='normal';
+  GS.isMulti=false;GS.isHost=true;
+  GS.currentStage=stage;
+  const sd=STAGE_DIFFICULTY[stage];
+  if(sd){GS.currentFallSpeed=sd.fallSpeed;GS.currentSpawnInterval=sd.spawnInterval;}
+  GS.cpuPlayers=[];
+  const delays={rookie:500,normal:200,expert:40};
+  savedCpuSetup.forEach((lv,i)=>{
+    if(!lv)return;
+    GS.cpuPlayers.push({pIdx:i+1,x:200+i*150,alive:true,level:lv,
+      color:PLAYER_COLORS[i+1].hex,reactionDelay:delays[lv],lastDecision:0,dir:'stop',score:0});
+  });
+  showScreen('game');setupCanvas();
+  GS.cpuPlayers.forEach((cpu,ci)=>{cpu.x=W*(0.2+ci*0.3);});
+  // Show player badges
+  const hpEl=document.getElementById('hud-players');
+  if(GS.cpuPlayers.length>0){
+    hpEl.style.display='flex';hpEl.innerHTML='';
+    const myPc=PLAYER_COLORS[0];
+    const myBadge=document.createElement('span');myBadge.className='p-badge';myBadge.style.borderColor=myPc.hex;myBadge.style.color=myPc.hex;
+    myBadge.textContent='● '+(GS.username||'YOU');myBadge.id='badge-0';hpEl.appendChild(myBadge);
+    GS.cpuPlayers.forEach(cpu=>{
+      const pc=PLAYER_COLORS[cpu.pIdx];
+      const lvLabel={rookie:'弱',normal:'中',expert:'強'}[cpu.level]||'';
+      const badge=document.createElement('span');badge.className='p-badge';badge.style.borderColor=pc.hex;badge.style.color=pc.hex;
+      badge.textContent='● CPU'+cpu.pIdx+' ('+lvLabel+')';badge.id='badge-cpu-'+cpu.pIdx;hpEl.appendChild(badge);
+    });
+  } else {hpEl.style.display='none';}
+  SoundMgr.changeBGMForStage(stage);
+  showCountdown(()=>{
+    GS.gameStartTime=Date.now();GS.stageStartTime=Date.now();GS.gameActive=true;
+    Commentary.queue=[];Commentary.add('c_stage'.replace('{n}',stage),1);gameLoop();
+  });
 }
 
 // ===== Countdown =====
@@ -1557,7 +1639,14 @@ function registerUser(name){
 // ===== Input =====
 function setupInputs(){
   document.addEventListener('keydown',e=>{
-    if(GS.currentScreen!=='game'||!GS.gameActive)return;
+    if(GS.currentScreen!=='game')return;
+    if(e.key==='Escape'){
+      e.preventDefault();
+      if(GS.gameActive)pauseGame();
+      else if(document.getElementById('pause-overlay').style.display==='flex')resumeGame();
+      return;
+    }
+    if(!GS.gameActive)return;
     if(e.key==='ArrowLeft'||e.key==='a')GS.moveLeft=true;
     if(e.key==='ArrowRight'||e.key==='d')GS.moveRight=true;
     if(e.key===' '||e.key==='Shift'){e.preventDefault();Dash.execute(GS.moveLeft?-1:GS.moveRight?1:1);}
@@ -1603,6 +1692,9 @@ function setupUI(){
   document.getElementById('btn-join-room').addEventListener('click',()=>{SoundMgr.playSE('click');joinRoom();});
   document.getElementById('btn-start-solo').addEventListener('click',()=>{SoundMgr.playSE('click');startSoloGame();});
   document.getElementById('btn-score-attack').addEventListener('click',()=>{SoundMgr.playSE('click');startScoreAttack();});
+  document.getElementById('btn-pause').addEventListener('click',()=>{SoundMgr.playSE('click');pauseGame();});
+  document.getElementById('btn-resume').addEventListener('click',()=>{SoundMgr.playSE('click');resumeGame();});
+  document.getElementById('btn-quit-game').addEventListener('click',()=>{SoundMgr.playSE('click');quitGame();});
   document.querySelectorAll('.btn').forEach(b=>{b.addEventListener('mouseenter',()=>SoundMgr.playSE('hover'));});
 }
 // CPU level selection state
