@@ -174,16 +174,42 @@ body{background:var(--bg-dark);color:var(--text-primary);font-family:'Courier Ne
 <div id="ranking-list"></div>
 </div></div>
 
-<!-- Mode Select Modal -->
+<!-- Solo Setup Modal -->
 <div class="modal-overlay" id="mode-modal">
 <div class="modal"><span class="close-btn" data-close="mode-modal">✕</span>
-<h2>ゲームモード</h2>
-<div id="mode-buttons"></div>
-<div class="spacer"></div>
-<h2>難易度</h2>
-<div class="btn-group" id="diff-buttons"></div>
-<div class="spacer"></div>
-<button class="btn" id="btn-start-solo">ゲームスタート</button>
+<h2>ゲーム設定</h2>
+<label>CPU対戦相手（最大3人）</label>
+<div id="cpu-slots" style="margin:10px 0">
+  <div class="cpu-slot" data-idx="0" style="display:flex;align-items:center;gap:8px;margin:8px 0;padding:8px;border:1px solid var(--neon-green-dim)">
+    <span style="color:#00dcff;min-width:30px">CPU1</span>
+    <div class="btn-group" style="flex:1;margin:0">
+      <button class="btn cpu-lv" data-idx="0" data-lv="none" style="padding:6px;margin:0;font-size:12px" >なし</button>
+      <button class="btn cpu-lv" data-idx="0" data-lv="rookie" style="padding:6px;margin:0;font-size:12px">弱</button>
+      <button class="btn cpu-lv" data-idx="0" data-lv="normal" style="padding:6px;margin:0;font-size:12px">中</button>
+      <button class="btn cpu-lv" data-idx="0" data-lv="expert" style="padding:6px;margin:0;font-size:12px">強</button>
+    </div>
+  </div>
+  <div class="cpu-slot" data-idx="1" style="display:flex;align-items:center;gap:8px;margin:8px 0;padding:8px;border:1px solid var(--neon-green-dim)">
+    <span style="color:#ffdc00;min-width:30px">CPU2</span>
+    <div class="btn-group" style="flex:1;margin:0">
+      <button class="btn cpu-lv" data-idx="1" data-lv="none" style="padding:6px;margin:0;font-size:12px">なし</button>
+      <button class="btn cpu-lv" data-idx="1" data-lv="rookie" style="padding:6px;margin:0;font-size:12px">弱</button>
+      <button class="btn cpu-lv" data-idx="1" data-lv="normal" style="padding:6px;margin:0;font-size:12px">中</button>
+      <button class="btn cpu-lv" data-idx="1" data-lv="expert" style="padding:6px;margin:0;font-size:12px">強</button>
+    </div>
+  </div>
+  <div class="cpu-slot" data-idx="2" style="display:flex;align-items:center;gap:8px;margin:8px 0;padding:8px;border:1px solid var(--neon-green-dim)">
+    <span style="color:#b450ff;min-width:30px">CPU3</span>
+    <div class="btn-group" style="flex:1;margin:0">
+      <button class="btn cpu-lv" data-idx="2" data-lv="none" style="padding:6px;margin:0;font-size:12px">なし</button>
+      <button class="btn cpu-lv" data-idx="2" data-lv="rookie" style="padding:6px;margin:0;font-size:12px">弱</button>
+      <button class="btn cpu-lv" data-idx="2" data-lv="normal" style="padding:6px;margin:0;font-size:12px">中</button>
+      <button class="btn cpu-lv" data-idx="2" data-lv="expert" style="padding:6px;margin:0;font-size:12px">強</button>
+    </div>
+  </div>
+</div>
+<p style="font-size:11px;color:var(--text-dim);margin-bottom:12px">※「なし」を選択するとCPUなしでプレイできます</p>
+<button class="btn" id="btn-start-solo" style="font-size:16px;padding:14px;background:rgba(0,255,65,0.08)">▶ ゲームスタート</button>
 </div></div>
 
 <!-- Multi Modal -->
@@ -739,25 +765,57 @@ const Commentary = {
 // ===== CPU AI =====
 const CPUBrain = {
   decide(cpu,objects,powerUps,level){
-    const threats=objects.filter(o=>o.y<groundY&&o.y>groundY-200&&Math.abs(o.x+o.w/2-cpu.x)<60);
-    if(level==='rookie'){return Math.random()<0.35?'left':Math.random()<0.7?'right':'stop';}
+    if(level==='rookie'){
+      const near=objects.filter(o=>o.y<groundY&&o.y>groundY-120&&Math.abs(o.x+o.w/2-cpu.x)<40);
+      if(near.length===0)return Math.random()<0.3?'left':Math.random()<0.6?'right':'stop';
+      const n=near.reduce((a,b)=>a.y>b.y?a:b);
+      return Math.random()<0.6?((n.x+n.w/2)>cpu.x?'left':'right'):'stop';
+    }
     if(level==='normal'){
+      const threats=objects.filter(o=>o.y<groundY&&o.y>groundY-200&&Math.abs(o.x+o.w/2-cpu.x)<60);
       if(threats.length===0)return 'stop';
       const nearest=threats.reduce((a,b)=>a.y>b.y?a:b);
       return (nearest.x+nearest.w/2)>cpu.x?'left':'right';
     }
-    // expert
-    const nearPU=powerUps.find(p=>Math.abs(p.x+p.w/2-cpu.x)<80&&p.y>groundY-150&&p.y<groundY);
-    if(nearPU)return (nearPU.x+nearPU.w/2)>cpu.x?'right':'left';
-    if(threats.length===0)return 'stop';
-    const zones=[];for(let x=30;x<W-30;x+=40){
-      let safety=threats.reduce((s,o)=>s+Math.min(200,Math.abs(x-o.x-o.w/2)),0);
-      zones.push({x,safety});
+    // expert: predict landing positions of ALL objects, find safest zone
+    const cpuHitW=30;
+    const dangerMap=new Float32Array(Math.ceil(W/10));
+    for(const o of objects){
+      if(o.bounced||o.y>groundY)continue;
+      const timeToGround=(groundY-o.y-o.h)/Math.max(o.speed,1);
+      if(timeToGround<0||timeToGround>120)continue;
+      const landX=o.x+o.w/2;
+      const urgency=Math.max(0,1-timeToGround/120);
+      const dangerRadius=o.w/2+cpuHitW+10;
+      const weight=(1+urgency*4)*(o.isBoss?3:1);
+      const cIdx=Math.floor(landX/10);
+      const rIdx=Math.ceil(dangerRadius/10);
+      for(let i=Math.max(0,cIdx-rIdx);i<Math.min(dangerMap.length,cIdx+rIdx+1);i++){
+        const dist=Math.abs(i*10-landX);
+        dangerMap[i]+=weight*Math.max(0,1-dist/dangerRadius);
+      }
     }
-    zones.sort((a,b)=>b.safety-a.safety);
-    const target=zones[0].x;
-    if(Math.abs(target-cpu.x)<5)return 'stop';
-    return target>cpu.x?'right':'left';
+    // Find safest position
+    let bestX=cpu.x,bestSafety=dangerMap[Math.floor(cpu.x/10)]||999;
+    for(let i=1;i<dangerMap.length-1;i++){
+      const x=i*10;
+      const d=dangerMap[i];
+      const distPenalty=Math.abs(x-cpu.x)*0.002;
+      const score=d+distPenalty;
+      if(score<bestSafety){bestSafety=score;bestX=x;}
+    }
+    // Collect nearby power-ups if safe
+    const nearPU=powerUps.find(p=>Math.abs(p.x+p.w/2-cpu.x)<100&&p.y>groundY-180&&p.y<groundY);
+    if(nearPU){
+      const puX=nearPU.x+nearPU.w/2;
+      const puIdx=Math.floor(puX/10);
+      if((dangerMap[puIdx]||0)<0.5){
+        if(Math.abs(puX-cpu.x)<8)return 'stop';
+        return puX>cpu.x?'right':'left';
+      }
+    }
+    if(Math.abs(bestX-cpu.x)<8)return 'stop';
+    return bestX>cpu.x?'right':'left';
   }
 };
 
@@ -806,7 +864,10 @@ function spawnFallingObject(){
   const pool=stageItems[GS.currentStage]||stageItems[1];
   const typeIdx=pool[Math.floor(Math.random()*pool.length)];
   const otype=OBJ_TYPES[typeIdx];
-  const obj={x:Math.random()*(W-otype.w),y:-otype.h,w:otype.w,h:otype.h,speed:GS.currentFallSpeed*(0.8+Math.random()*0.4),
+  // Ensure objects fall across the ENTIRE screen width including edges
+  const spawnX=Math.random()*W-otype.w/2;
+  const clampedX=Math.max(-otype.w*0.3,Math.min(W-otype.w*0.7,spawnX));
+  const obj={x:clampedX,y:-otype.h,w:otype.w,h:otype.h,speed:GS.currentFallSpeed*(0.8+Math.random()*0.4),
     typeId:otype.id,color:otype.color,rotation:0,rotSpeed:(Math.random()-0.5)*0.1,isBoss:false,bounced:false,bounceVy:0};
   GS.fallingObjects.push(obj);
 }
@@ -881,13 +942,15 @@ function gameLoop(){
   if(GS.moveLeft)GS.playerX=Math.max(0,GS.playerX-pxStep);
   if(GS.moveRight)GS.playerX=Math.min(100-GS.playerWidth/W*100,GS.playerX+pxStep);
   // Move CPU players
+  const cpuSpdMul={rookie:0.7,normal:1,expert:1.5};
   GS.cpuPlayers.forEach(cpu=>{
     if(!cpu.alive)return;
     if(now-cpu.lastDecision<cpu.reactionDelay)return;
     cpu.lastDecision=now;
     const dir=CPUBrain.decide(cpu,GS.fallingObjects,GS.powerUpItems,cpu.level);
-    if(dir==='left')cpu.x=Math.max(15,cpu.x-spd);
-    else if(dir==='right')cpu.x=Math.min(W-15,cpu.x+spd);
+    const cspd=spd*(cpuSpdMul[cpu.level]||1);
+    if(dir==='left')cpu.x=Math.max(15,cpu.x-cspd);
+    else if(dir==='right')cpu.x=Math.min(W-15,cpu.x+cspd);
   });
   // Update difficulty
   updateDifficulty();
@@ -1214,14 +1277,14 @@ function startSoloGame(){
   GS.gameMode='normal';GS.difficulty='normal';
   GS.isMulti=false;GS.isHost=true;GS.gameStartTime=Date.now();GS.stageStartTime=Date.now();GS.gameActive=true;
   GS.cpuPlayers=[];
-  const levels=['rookie','normal','expert'];
-  for(let i=1;i<=3;i++){
-    GS.cpuPlayers.push({pIdx:i,x:W?(W*(0.2+i*0.2)):200+i*100,alive:true,level:levels[i-1],
-      color:PLAYER_COLORS[i].hex,reactionDelay:[500,200,50][i-1],lastDecision:0,score:0});
-  }
+  const delays={rookie:500,normal:200,expert:40};
+  cpuSetup.forEach((lv,i)=>{
+    if(!lv)return;
+    GS.cpuPlayers.push({pIdx:i+1,x:200+i*150,alive:true,level:lv,
+      color:PLAYER_COLORS[i+1].hex,reactionDelay:delays[lv],lastDecision:0,score:0});
+  });
   showScreen('game');setupCanvas();
-  // Re-position CPUs after canvas setup
-  GS.cpuPlayers.forEach((cpu,i)=>{cpu.x=W*(0.15+(i+1)*0.2);});
+  GS.cpuPlayers.forEach((cpu,ci)=>{cpu.x=W*(0.2+ci*0.3);});
   SoundMgr.changeBGMForStage(1);
   Commentary.queue=[];Commentary.add('c_start',1);gameLoop();
 }
@@ -1367,7 +1430,7 @@ function setupUI(){
     }catch(err){if(err==='taken'){document.getElementById('username-error').style.display='block';document.getElementById('username-error').textContent='このネームは他のユーザーが使用中です';SoundMgr.playSE('error');}}
   });
   document.getElementById('btn-guest').addEventListener('click',()=>{GS.username=null;GS.isGuest=true;SoundMgr.playSE('click');showToast('ゲストモードで開始');});
-  document.getElementById('btn-solo').addEventListener('click',()=>{SoundMgr.playSE('click');startSoloGame();});
+  document.getElementById('btn-solo').addEventListener('click',()=>{SoundMgr.playSE('click');setupSoloModal();showModal('mode-modal');});
   document.getElementById('btn-multi').addEventListener('click',()=>{SoundMgr.playSE('click');setupMultiModal();showModal('multi-modal');});
   document.getElementById('btn-rules').addEventListener('click',()=>{SoundMgr.playSE('click');document.getElementById('rule-content').innerHTML=t('rule_text');showModal('rule-modal');});
   document.getElementById('btn-ranking').addEventListener('click',()=>{SoundMgr.playSE('click');loadRankings();showModal('ranking-modal');});
@@ -1378,15 +1441,22 @@ function setupUI(){
   document.getElementById('btn-start-solo').addEventListener('click',()=>{SoundMgr.playSE('click');startSoloGame();});
   document.querySelectorAll('.btn').forEach(b=>{b.addEventListener('mouseenter',()=>SoundMgr.playSE('hover'));});
 }
-function setupModeModal(){
-  const mD=document.getElementById('mode-buttons');mD.innerHTML='';
-  Object.entries(GAME_MODES).forEach(([k,m])=>{if(!m.solo)return;
-    const b=document.createElement('button');b.className='btn'+(GS.gameMode===k?' selected':'');b.textContent=t(m.label);b.dataset.mode=k;
-    b.addEventListener('click',()=>{GS.gameMode=k;mD.querySelectorAll('.btn').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');SoundMgr.playSE('click');});mD.appendChild(b);});
-  const dD=document.getElementById('diff-buttons');dD.innerHTML='';
-  ['easy','normal','hard'].forEach(d=>{const b=document.createElement('button');b.className='btn'+(GS.difficulty===d?' selected':'');b.textContent=t('difficulty_'+d);b.dataset.diff=d;
-    b.addEventListener('click',()=>{GS.difficulty=d;dD.querySelectorAll('.btn').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');SoundMgr.playSE('click');});dD.appendChild(b);});
+// CPU level selection state
+const cpuSetup=[null,null,null]; // null='none', or 'rookie','normal','expert'
+function setupSoloModal(){
+  cpuSetup[0]=null;cpuSetup[1]=null;cpuSetup[2]=null;
+  document.querySelectorAll('.cpu-lv').forEach(btn=>{
+    btn.classList.remove('selected');
+    if(btn.dataset.lv==='none')btn.classList.add('selected');
+    btn.onclick=()=>{
+      const idx=parseInt(btn.dataset.idx);const lv=btn.dataset.lv;
+      cpuSetup[idx]=lv==='none'?null:lv;
+      btn.parentElement.querySelectorAll('.cpu-lv').forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected');SoundMgr.playSE('click');
+    };
+  });
 }
+function setupModeModal(){setupSoloModal();}
 function setupMultiModal(){
   const mm=document.getElementById('multi-mode-buttons');mm.innerHTML='';
   [{key:'individual',label:'multi_individual'},{key:'team',label:'multi_team'},{key:'coop',label:'multi_coop'}].forEach(m=>{
