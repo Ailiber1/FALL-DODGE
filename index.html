@@ -231,19 +231,6 @@ body{background:var(--bg-dark);color:var(--text-primary);font-family:'Courier Ne
 <button class="btn btn-sub" id="btn-cancel-multi" data-close="multi-modal">キャンセル</button>
 </div></div>
 
-<!-- Multi Registration Modal -->
-<div class="modal-overlay" id="multi-reg-modal">
-<div class="modal"><span class="close-btn" data-close="multi-reg-modal">✕</span>
-<h2>マルチプレイ参加登録</h2>
-<p style="font-size:13px;color:var(--text-dim);margin:8px 0">マルチプレイに参加するにはユーザー名を登録してください</p>
-<label>USER NAME</label>
-<input type="text" id="multi-username-input" placeholder="名前を入力..." maxlength="16">
-<div class="error-text" id="multi-username-error" style="display:none"></div>
-<div class="spacer"></div>
-<button class="btn" id="btn-multi-register">登録してマルチプレイに参加</button>
-<button class="btn btn-sub" data-close="multi-reg-modal">キャンセル</button>
-</div></div>
-
 <!-- Lobby -->
 <div id="lobby-screen" class="screen">
 <div class="panel" style="max-width:500px">
@@ -1460,19 +1447,15 @@ function setupUI(){
     }catch(err){if(err==='taken'){document.getElementById('username-error').style.display='block';document.getElementById('username-error').textContent='このネームは他のユーザーが使用中です';SoundMgr.playSE('error');}}
   });
   document.getElementById('btn-guest').addEventListener('click',()=>{GS.username=null;GS.isGuest=true;SoundMgr.playSE('click');setupSoloModal();showModal('mode-modal');});
-  document.getElementById('btn-multi').addEventListener('click',()=>{
+  document.getElementById('btn-multi').addEventListener('click',async()=>{
     SoundMgr.playSE('click');
-    if(GS.username&&!GS.isGuest){setupMultiModal();showModal('multi-modal');}
-    else{document.getElementById('multi-username-input').value='';document.getElementById('multi-username-error').style.display='none';showModal('multi-reg-modal');}
-  });
-  document.getElementById('btn-multi-register').addEventListener('click',async()=>{
-    const name=document.getElementById('multi-username-input').value.trim();
-    if(!name){document.getElementById('multi-username-error').style.display='block';document.getElementById('multi-username-error').textContent='名前を入力してください';SoundMgr.playSE('error');return;}
+    if(GS.username&&!GS.isGuest){setupMultiModal();showModal('multi-modal');return;}
+    const name=document.getElementById('username-input').value.trim();
+    if(!name){document.getElementById('username-error').style.display='block';document.getElementById('username-error').textContent='マルチプレイにはユーザー名の登録が必要です';SoundMgr.playSE('error');return;}
     try{await registerUser(name);GS.username=name;GS.isGuest=false;localStorage.setItem('fd_username',name);
-      document.getElementById('username-input').value=name;
-      SoundMgr.playSE('click');showToast('登録完了: '+name);hideModal('multi-reg-modal');
+      showToast('登録完了: '+name);document.getElementById('username-error').style.display='none';
       setupMultiModal();showModal('multi-modal');
-    }catch(err){if(err==='taken'){document.getElementById('multi-username-error').style.display='block';document.getElementById('multi-username-error').textContent='このネームは他のユーザーが使用中です';SoundMgr.playSE('error');}}
+    }catch(err){if(err==='taken'){document.getElementById('username-error').style.display='block';document.getElementById('username-error').textContent='このネームは他のユーザーが使用中です';SoundMgr.playSE('error');}}
   });
   document.getElementById('btn-rules').addEventListener('click',()=>{SoundMgr.playSE('click');document.getElementById('rule-content').innerHTML=t('rule_text');showModal('rule-modal');});
   document.getElementById('btn-ranking').addEventListener('click',()=>{SoundMgr.playSE('click');loadRankings();showModal('ranking-modal');});
