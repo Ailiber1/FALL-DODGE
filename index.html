@@ -1324,6 +1324,8 @@ function advanceStage(){
 // ===== Game Loop =====
 function gameLoop(){
   if(!GS.gameActive){return;}
+  // Always cancel previous frame to guarantee only ONE loop runs
+  if(GS.animationId){cancelAnimationFrame(GS.animationId);}
   GS.animationId=requestAnimationFrame(gameLoop);
   GS.elapsed=Date.now()-GS.gameStartTime;
   const now=Date.now();
@@ -2177,6 +2179,7 @@ function setupLobby(roomId){
   }
   updateLobbyInfo();
   // --- Player List ---
+  roomRef.child('players').off('value');// clear stale listeners on rematch
   roomRef.child('players').on('value',snap=>{
     const players=snap.val()||{};GS.players=players;
     const container=document.getElementById('lobby-players');container.innerHTML='';
@@ -2197,6 +2200,8 @@ function setupLobby(roomId){
     }
     refreshTeamUI();
   });
+  // Remove any previous status listener before adding new one (prevents stacking on rematch)
+  roomRef.child('status').off('value');
   let multiStarted=false;
   roomRef.child('status').on('value',snap=>{if(snap.val()==='playing'&&!GS.gameActive&&!multiStarted){multiStarted=true;startMultiGame();}});
   document.getElementById('btn-start-game').onclick=()=>{roomRef.child('status').set('playing');};
