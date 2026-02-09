@@ -1439,6 +1439,16 @@ function render(){
       // Striped hazard pattern
       ctx.strokeStyle='rgba(255,0,0,'+(0.3+0.15*pulse)+')';ctx.lineWidth=2;
       for(let sy=0;sy<groundY;sy+=40){ctx.beginPath();ctx.moveTo(bw.x,sy);ctx.lineTo(bw.x+bw.w,sy+20);ctx.stroke();}
+      // DANGER text
+      if(bw.w>50){
+        ctx.save();
+        ctx.fillStyle='rgba(255,50,50,'+(0.7+0.3*pulse)+')';
+        ctx.font='bold '+Math.max(14,Math.min(bw.w*0.2,28))+'px Courier New';
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText('⚠ DANGER',bw.x+bw.w/2,groundY*0.3);
+        ctx.fillText('⚠ DANGER',bw.x+bw.w/2,groundY*0.7);
+        ctx.restore();
+      }
     } else {
       ctx.fillStyle='rgba(255,0,0,'+(0.15+0.1*pulse)+')';
       ctx.fillRect(bw.x,groundY-80,bw.w,80);
