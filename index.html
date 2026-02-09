@@ -1162,24 +1162,32 @@ function trySpawnWallCrush(){
   if(GS.elapsed<nextWallCrush)return;
   // Hidden: 18-30s, Multi Hard: 30-50s (less frequent)
   nextWallCrush=GS.elapsed+(isSecret?18000+Math.random()*12000:30000+Math.random()*20000);
-  const gapW=W*0.18; // Gap width: 18% of screen
-  const gapMin=W*0.1,gapMax=W*0.9-gapW;
-  const gapX=gapMin+Math.random()*(gapMax-gapMin);
-  const blockH=H*0.35;
+  // Use ratios (0-1) so all screens show same layout
+  const gapRatio=0.18; // Gap width: 18% of screen
+  const gapMinR=0.1,gapMaxR=0.9-gapRatio;
+  const gapXR=gapMinR+Math.random()*(gapMaxR-gapMinR);
   const warnDur=2500; // Warning duration
-  // Warning zones: left block and right block with safe gap highlighted
+  // Sync wall crush to all players via Firebase
+  if(GS.isMulti&&GS.roomId){
+    database.ref('rooms/'+GS.roomId+'/wallCrush').set({gapXR,gapRatio,warnDur,timestamp:Date.now()});
+  }
+  spawnWallCrushLocal(gapXR,gapRatio,warnDur);
+}
+
+function spawnWallCrushLocal(gapXR,gapRatio,warnDur){
+  const gapX=gapXR*W;
+  const gapW=gapRatio*W;
+  const blockH=H*0.35;
+  // Warning zones
   GS.bossWarnings.push({x:0,w:gapX,until:Date.now()+warnDur,isWall:true});
   GS.bossWarnings.push({x:gapX+gapW,w:W-(gapX+gapW),until:Date.now()+warnDur,isWall:true});
-  // Safe zone indicator (green flash)
   GS.bossWarnings.push({x:gapX,w:gapW,until:Date.now()+warnDur,isSafe:true});
   SoundMgr.playSE('boss_warn');
   if(currentLang==='ja')Commentary.add('c_boss',3);
   setTimeout(()=>{
     if(!GS.gameActive)return;
-    // Left wall block
     GS.fallingObjects.push({x:0,y:-blockH,w:gapX,h:blockH,speed:GS.currentFallSpeed*0.6,
       typeId:'wall',color:'#880000',rotation:0,rotSpeed:0,isBoss:true,bounced:false,bounceVy:0,bossPoints:3,canBounce:false});
-    // Right wall block
     GS.fallingObjects.push({x:gapX+gapW,y:-blockH,w:W-(gapX+gapW),h:blockH,speed:GS.currentFallSpeed*0.6,
       typeId:'wall',color:'#880000',rotation:0,rotSpeed:0,isBoss:true,bounced:false,bounceVy:0,bossPoints:3,canBounce:false});
   },warnDur);
@@ -2141,6 +2149,16 @@ function startMultiGame(){
   if(!GS.isHost){
     SyncLayer.onFallingObjectsUpdate(objs=>{if(objs)GS.fallingObjects=objs;});
     SyncLayer.onPowerUpsUpdate(items=>{if(items)GS.powerUpItems=items;});
+    // Listen for wall crush events from host
+    let lastWallCrushTs=0;
+    const wcRef=database.ref('rooms/'+GS.roomId+'/wallCrush');
+    wcRef.on('value',snap=>{
+      const wc=snap.val();
+      if(!wc||wc.timestamp<=lastWallCrushTs)return;
+      lastWallCrushTs=wc.timestamp;
+      spawnWallCrushLocal(wc.gapXR,wc.gapRatio,wc.warnDur);
+    });
+    SyncLayer.listeners.push(wcRef);
   }
   SyncLayer.onPlayersUpdate(players=>{
     if(!players)return;GS.players=players;
