@@ -1128,6 +1128,34 @@ function spawnBossObject(){
   },2000);
 }
 
+// ===== Wall Crush (Hidden Stage only) =====
+let nextWallCrush=0;
+function trySpawnWallCrush(){
+  if(GS.currentStage!==6||GS.elapsed<nextWallCrush)return;
+  nextWallCrush=GS.elapsed+18000+Math.random()*12000; // Every 18-30s
+  const gapW=W*0.18; // Gap width: 18% of screen
+  const gapMin=W*0.1,gapMax=W*0.9-gapW;
+  const gapX=gapMin+Math.random()*(gapMax-gapMin);
+  const blockH=H*0.35;
+  const warnDur=2500; // Warning duration
+  // Warning zones: left block and right block with safe gap highlighted
+  GS.bossWarnings.push({x:0,w:gapX,until:Date.now()+warnDur,isWall:true});
+  GS.bossWarnings.push({x:gapX+gapW,w:W-(gapX+gapW),until:Date.now()+warnDur,isWall:true});
+  // Safe zone indicator (green flash)
+  GS.bossWarnings.push({x:gapX,w:gapW,until:Date.now()+warnDur,isSafe:true});
+  SoundMgr.playSE('boss_warn');
+  if(currentLang==='ja')Commentary.add('c_boss',3);
+  setTimeout(()=>{
+    if(!GS.gameActive)return;
+    // Left wall block
+    GS.fallingObjects.push({x:0,y:-blockH,w:gapX,h:blockH,speed:GS.currentFallSpeed*0.6,
+      typeId:'wall',color:'#880000',rotation:0,rotSpeed:0,isBoss:true,bounced:false,bounceVy:0,bossPoints:3,canBounce:false});
+    // Right wall block
+    GS.fallingObjects.push({x:gapX+gapW,y:-blockH,w:W-(gapX+gapW),h:blockH,speed:GS.currentFallSpeed*0.6,
+      typeId:'wall',color:'#880000',rotation:0,rotSpeed:0,isBoss:true,bounced:false,bounceVy:0,bossPoints:3,canBounce:false});
+  },warnDur);
+}
+
 // ===== Difficulty Update (stage-based + time ramp) =====
 function updateDifficulty(){
   if(GS.gameMode==='scoreAttack'){
@@ -1238,6 +1266,7 @@ function gameLoop(){
     spawnFallingObject();
     if(GS.gameMode==='bossRush'){if(GS.elapsed>GS.nextBossTime){GS.nextBossTime=GS.elapsed+5000;spawnBossObject();}}
     else spawnBossObject();
+    trySpawnWallCrush();
   }
   // Update falling objects
   const pxAbs=GS.playerX/100*W;const pyAbs=groundY-GS.playerHeight;
@@ -1361,8 +1390,28 @@ function render(){
   // Boss warnings
   GS.bossWarnings=GS.bossWarnings.filter(bw=>{
     if(Date.now()>bw.until)return false;
-    ctx.fillStyle='rgba(255,0,0,'+(0.15+0.1*Math.sin(Date.now()/100))+')';
-    ctx.fillRect(bw.x,groundY-80,bw.w,80);return true;
+    const pulse=Math.sin(Date.now()/100);
+    if(bw.isSafe){
+      // Safe zone: green pulsing column
+      ctx.fillStyle='rgba(0,255,65,'+(0.08+0.06*pulse)+')';
+      ctx.fillRect(bw.x,0,bw.w,groundY+15);
+      // Arrow indicator
+      ctx.fillStyle='rgba(0,255,65,'+(0.5+0.3*pulse)+')';
+      ctx.font='bold '+Math.max(16,bw.w*0.3)+'px Courier New';ctx.textAlign='center';
+      ctx.fillText('▼ SAFE ▼',bw.x+bw.w/2,groundY*0.5);
+      ctx.textAlign='left';
+    } else if(bw.isWall){
+      // Wall crush danger: full-height red zone
+      ctx.fillStyle='rgba(255,0,0,'+(0.12+0.08*pulse)+')';
+      ctx.fillRect(bw.x,0,bw.w,groundY+15);
+      // Striped hazard pattern
+      ctx.strokeStyle='rgba(255,0,0,'+(0.3+0.15*pulse)+')';ctx.lineWidth=2;
+      for(let sy=0;sy<groundY;sy+=40){ctx.beginPath();ctx.moveTo(bw.x,sy);ctx.lineTo(bw.x+bw.w,sy+20);ctx.stroke();}
+    } else {
+      ctx.fillStyle='rgba(255,0,0,'+(0.15+0.1*pulse)+')';
+      ctx.fillRect(bw.x,groundY-80,bw.w,80);
+    }
+    return true;
   });
   // Falling objects
   GS.fallingObjects.forEach(obj=>drawFallingObject(ctx,obj));
@@ -1661,7 +1710,7 @@ function resetGameState(){
     weatherShakeFrames:0,weatherFlash:0,stageTransitionUntil:0,timeRemaining:60000,stageTimeRemaining:120,
     comboTriggered:{},scoreTriggered:{},timeTriggered:{},isSecretStage:false,
     moveDistAccum:0,lastPlayerXFrame:50,moveScoreTimer:0});
-  GS.reverse=GS.gameMode==='reverse';GS.stageStartTime=Date.now();
+  GS.reverse=GS.gameMode==='reverse';GS.stageStartTime=Date.now();nextWallCrush=0;
   const sd=STAGE_DIFFICULTY[1];GS.currentFallSpeed=sd.fallSpeed;GS.currentSpawnInterval=sd.spawnInterval;
   // Hide multi-rule HUD when not multi
   const ruleEl=document.getElementById('hud-multi-rule');
