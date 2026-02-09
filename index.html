@@ -111,7 +111,7 @@ body{background:radial-gradient(ellipse at 50% 40%,#002a10 0%,#001208 40%,#000a0
 .lobby-player{display:flex;align-items:center;gap:10px;padding:8px;border:1px solid rgba(0,255,65,0.2);margin:4px 0}
 .lobby-player.empty{opacity:0.3}
 .lobby-player .dot{width:10px;height:10px;border-radius:50%}
-.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,20,10,0.95);border:1px solid var(--neon-green);color:var(--neon-green);padding:10px 24px;font-size:13px;z-index:100;animation:float-in 0.3s ease-out}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,20,10,0.95);border:1px solid var(--neon-green);color:var(--neon-green);padding:10px 24px;font-size:13px;z-index:100;animation:float-in 0.3s ease-out;white-space:pre-line;text-align:center;max-width:90%}
 .error-text{color:var(--neon-red);font-size:12px;margin-top:4px;display:none}
 @media(max-width:600px){.panel{padding:15px;width:95%}.btn{padding:10px;font-size:13px}.ctrl-btn{padding:20px 24px;font-size:20px;min-height:60px}}
 @media(hover:hover) and (pointer:fine){.mobile-controls{display:none}}
@@ -1622,7 +1622,7 @@ function showScreen(id){
 }
 function showModal(id){document.getElementById(id).classList.add('active');}
 function hideModal(id){document.getElementById(id).classList.remove('active');}
-function showToast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2500);}
+function showToast(msg,duration){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),duration||2500);}
 
 // ===== Canvas Setup =====
 function setupCanvas(){
@@ -1790,27 +1790,41 @@ function joinRoom(){
     document.getElementById('room-input').focus();
     return;
   }
-  GS.roomId=roomId;GS.isMulti=true;
-  SyncLayer.connect(roomId);
   const roomRef=database.ref('rooms/'+roomId);
   roomRef.once('value',snap=>{
     const room=snap.val();
     if(!room){
       // First player creates room - becomes host
+      GS.roomId=roomId;GS.isMulti=true;
+      SyncLayer.connect(roomId);
       GS.playerIndex=0;GS.isHost=true;
       GS.multiMode='individual';GS.difficulty='normal';
       roomRef.set({status:'waiting',difficulty:'normal',gameMode:'individual',hostIndex:0,
         createdAt:firebase.database.ServerValue.TIMESTAMP,
         players:{0:{username:GS.username||'PLAYER 1',deviceId:GS.deviceId,x:50,alive:true,score:0}}});
+      hideModal('multi-modal');showScreen('lobby');setupLobby(roomId);
     } else {
       const players=room.players||{};const count=Object.keys(players).length;
-      if(count>=4){showToast(currentLang==='ja'?'ルームが満員です':'Room is full');return;}
-      if(room.status==='playing'){showToast(currentLang==='ja'?'ゲーム進行中です':'Game in progress');return;}
+      if(count>=4){
+        showToast(currentLang==='ja'?'⚠ ルーム「'+roomId+'」は満員です（4/4人）。\n別のルームIDで作成してください。':'⚠ Room "'+roomId+'" is full (4/4).\nPlease create a different Room ID.',4000);
+        SoundMgr.playSE('error');
+        document.getElementById('room-input').value='';
+        document.getElementById('room-input').focus();
+        return;
+      }
+      if(room.status==='playing'){
+        showToast(currentLang==='ja'?'⚠ ルーム「'+roomId+'」はゲーム進行中です。\n終了後にもう一度お試しください。':'⚠ Room "'+roomId+'" is in progress.\nPlease try again later.',4000);
+        SoundMgr.playSE('error');
+        return;
+      }
+      GS.roomId=roomId;GS.isMulti=true;
+      SyncLayer.connect(roomId);
       GS.playerIndex=count;GS.isHost=false;
       GS.difficulty=room.difficulty||'normal';GS.multiMode=room.gameMode||'individual';
+      if(room.teamAssign)GS.teamAssign=room.teamAssign;
       roomRef.child('players/'+GS.playerIndex).set({username:GS.username||'PLAYER '+(GS.playerIndex+1),deviceId:GS.deviceId,x:50,alive:true,score:0});
+      hideModal('multi-modal');showScreen('lobby');setupLobby(roomId);
     }
-    hideModal('multi-modal');showScreen('lobby');setupLobby(roomId);
   });
 }
 function setupLobby(roomId){
