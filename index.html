@@ -1128,11 +1128,15 @@ function spawnBossObject(){
   },2000);
 }
 
-// ===== Wall Crush (Hidden Stage only) =====
+// ===== Wall Crush (Hidden Stage + Multi Hard) =====
 let nextWallCrush=0;
 function trySpawnWallCrush(){
-  if(GS.currentStage!==6||GS.elapsed<nextWallCrush)return;
-  nextWallCrush=GS.elapsed+18000+Math.random()*12000; // Every 18-30s
+  const isSecret=GS.currentStage===6;
+  const isMultiHard=GS.isMulti&&GS.difficulty==='hard';
+  if(!isSecret&&!isMultiHard)return;
+  if(GS.elapsed<nextWallCrush)return;
+  // Hidden: 18-30s, Multi Hard: 30-50s (less frequent)
+  nextWallCrush=GS.elapsed+(isSecret?18000+Math.random()*12000:30000+Math.random()*20000);
   const gapW=W*0.18; // Gap width: 18% of screen
   const gapMin=W*0.1,gapMax=W*0.9-gapW;
   const gapX=gapMin+Math.random()*(gapMax-gapMin);
