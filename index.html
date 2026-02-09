@@ -89,7 +89,7 @@ body{background:radial-gradient(ellipse at 50% 40%,#002a10 0%,#001208 40%,#000a0
 .dash-gauge .gauge-fill{height:100%;background:var(--neon-green);transition:width 0.1s}
 .commentary-bar{width:100%;padding:10px 8px;text-align:center;font-size:18px;font-weight:bold;color:var(--neon-green);background:rgba(0,10,4,0.9);min-height:36px;z-index:5;text-shadow:0 0 8px var(--neon-green-glow);letter-spacing:0.5px}
 #result-screen{z-index:30}
-.result-box{text-align:center;width:90%;max-width:460px}
+.result-box{text-align:center;width:92%;max-width:500px}
 .result-box h2{font-size:clamp(28px,8vw,48px);color:var(--neon-green);text-shadow:0 0 20px var(--neon-green-glow),0 0 40px var(--neon-green-glow);margin-bottom:10px}
 .result-box .winner-area{margin:10px 0}
 .result-box .winner-name{font-size:24px;color:var(--neon-gold);text-shadow:0 0 10px rgba(255,204,0,0.6)}
@@ -98,8 +98,10 @@ body{background:radial-gradient(ellipse at 50% 40%,#002a10 0%,#001208 40%,#000a0
 .result-box .ranking-list{text-align:left;margin:10px 0;font-size:13px}
 .result-box .ranking-list div{display:flex;justify-content:space-between;padding:4px 8px;border-bottom:1px solid rgba(0,255,65,0.1)}
 .result-box .ranking-list div:nth-child(1){color:var(--neon-gold)}
-.result-btns{display:flex;gap:10px;margin-top:15px}
-.result-btns .btn{flex:1}
+.result-btns{display:flex;flex-direction:column;gap:8px;margin-top:15px}
+.result-btns .btn{white-space:nowrap;font-size:14px}
+.result-btns .two-col{display:flex;gap:8px}
+.result-btns .two-col .btn{flex:1}
 .achievement-popup{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(0,20,10,0.95);border:1px solid var(--neon-gold);color:var(--neon-gold);padding:10px 20px;font-size:13px;z-index:60;animation:float-in 0.5s ease-out}
 .ranking-tabs{display:flex;gap:4px;margin-bottom:12px}
 .ranking-tabs .tab{padding:6px 12px;border:1px solid var(--neon-green-dim);color:var(--text-dim);cursor:pointer;font-size:12px;font-family:inherit}
@@ -1346,9 +1348,11 @@ function showResult(){
       html+='<div class="result-btns"><button class="btn" onclick="startScoreAttack()">'+t('retry')+'</button>';
       html+='<button class="btn btn-sub" onclick="backToTitle()">'+t('back_to_title')+'</button></div>';
     } else {
-      const stLabel=currentLang==='ja'?'ステージ'+GS.currentStage+'からリトライ':'Retry from Stage '+GS.currentStage;
-      html+='<div class="result-btns"><button class="btn" onclick="retrySameStage()">🔄 '+stLabel+'</button>';
-      html+='<button class="btn" onclick="startSoloGame()">↩ '+(currentLang==='ja'?'ステージ1からやり直す':'Restart from Stage 1')+'</button>';
+      const retryLabel=currentLang==='ja'?'🔄 ステージ'+GS.currentStage+' リトライ':'🔄 Retry Stage '+GS.currentStage;
+      const restartLabel=currentLang==='ja'?'↩ ステージ1から':'↩ Stage 1';
+      html+='<div class="result-btns">';
+      html+='<div class="two-col"><button class="btn" onclick="retrySameStage()">'+retryLabel+'</button>';
+      html+='<button class="btn" onclick="startSoloGame()">'+restartLabel+'</button></div>';
       html+='<button class="btn btn-sub" onclick="backToTitle()">'+t('back_to_title')+'</button></div>';
     }
     box.innerHTML=html;
