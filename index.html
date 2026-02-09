@@ -524,6 +524,8 @@ const GS = {
 let canvas, ctx, W, H;
 const GROUND_Y_RATIO = 0.88;
 let groundY;
+const isPC=window.matchMedia('(hover:hover) and (pointer:fine)').matches;
+const PC_CHAR_SCALE=isPC?1.7:1; // PC: larger characters for visibility
 
 // ===== Matrix Background =====
 const MatrixBG = {
@@ -1358,12 +1360,12 @@ function render(){
   const pxAbs=GS.playerX/100*W;
   const pose=GS.dashActive?'run':(GS.moveLeft||GS.moveRight?'run':'stand');
   if(GS.isAlive){
-    const pScale=GS.enlarge?1.8:1;
+    const pScale=(GS.enlarge?2.4:1)*PC_CHAR_SCALE; // Enlarge is even bigger on PC
     const drawY=groundY-14*pScale; // Position so feet touch ground line
     const myColor=getPlayerColor(GS.playerIndex);
     if(GS.dashActive){// Afterimage
-      drawStickFigure(ctx,pxAbs-10,drawY,myColor,pose,pScale,0.3);
-      drawStickFigure(ctx,pxAbs-5,drawY,myColor,pose,pScale,0.5);
+      drawStickFigure(ctx,pxAbs-10*PC_CHAR_SCALE,drawY,myColor,pose,pScale,0.3);
+      drawStickFigure(ctx,pxAbs-5*PC_CHAR_SCALE,drawY,myColor,pose,pScale,0.5);
     }
     drawStickFigure(ctx,pxAbs,drawY,myColor,pose,pScale,1);
     // Shield visual
@@ -1377,17 +1379,19 @@ function render(){
       const eh=44*pScale;ctx.strokeRect(pxAbs-12*pScale,drawY-30*pScale,24*pScale,eh);ctx.setLineDash([]);}
   }
   // CPU players
+  const cpuScale=0.9*PC_CHAR_SCALE;
   GS.cpuPlayers.forEach(cpu=>{
     if(!cpu.alive)return;
-    drawStickFigure(ctx,cpu.x,groundY-14*0.9,cpu.color,'run',0.9,0.9);
+    drawStickFigure(ctx,cpu.x,groundY-14*cpuScale,cpu.color,'run',cpuScale,0.9);
   });
   // Multi other players
   if(GS.isMulti){
+    const mpScale=0.9*PC_CHAR_SCALE;
     Object.entries(GS.players).forEach(([idx,p])=>{
       if(parseInt(idx)===GS.playerIndex)return;
       if(!p||!p.alive)return;
       const px=p.x/100*W;
-      drawStickFigure(ctx,px,groundY-14*0.9,getPlayerColor(idx),'run',0.9,0.8);
+      drawStickFigure(ctx,px,groundY-14*mpScale,getPlayerColor(idx),'run',mpScale,0.8);
     });
   }
   // Particles
