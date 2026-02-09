@@ -1106,8 +1106,9 @@ function spawnFallingObject(){
   // Ensure objects fall across the ENTIRE screen width including edges
   const spawnX=Math.random()*W-otype.w/2;
   const clampedX=Math.max(-otype.w*0.3,Math.min(W-otype.w*0.7,spawnX));
+  const canBounce=(GS.currentStage>=5)&&Math.random()<0.25; // 25% chance in stage 5/6
   const obj={x:clampedX,y:-otype.h,w:otype.w,h:otype.h,speed:GS.currentFallSpeed*(0.8+Math.random()*0.4),
-    typeId:otype.id,color:otype.color,rotation:0,rotSpeed:(Math.random()-0.5)*0.1,isBoss:false,bounced:false,bounceVy:0};
+    typeId:otype.id,color:otype.color,rotation:0,rotSpeed:(Math.random()-0.5)*0.1,isBoss:false,bounced:false,bounceVy:0,canBounce};
   GS.fallingObjects.push(obj);
 }
 
@@ -1125,6 +1126,38 @@ function spawnBossObject(){
     GS.fallingObjects.push({x:bx,y:-bh,w:bw,h:bh,speed:GS.currentFallSpeed*0.7,
       typeId:btype.id,color:btype.color,rotation:0,rotSpeed:0,isBoss:true,bounced:false,bounceVy:0,bossPoints:5});
   },2000);
+}
+
+// ===== Wall Crush (Hidden Stage + Multi Hard) =====
+let nextWallCrush=0;
+function trySpawnWallCrush(){
+  const isSecret=GS.currentStage===6;
+  const isMultiHard=GS.isMulti&&GS.difficulty==='hard';
+  if(!isSecret&&!isMultiHard)return;
+  if(GS.elapsed<nextWallCrush)return;
+  // Hidden: 18-30s, Multi Hard: 30-50s (less frequent)
+  nextWallCrush=GS.elapsed+(isSecret?18000+Math.random()*12000:30000+Math.random()*20000);
+  const gapW=W*0.18; // Gap width: 18% of screen
+  const gapMin=W*0.1,gapMax=W*0.9-gapW;
+  const gapX=gapMin+Math.random()*(gapMax-gapMin);
+  const blockH=H*0.35;
+  const warnDur=2500; // Warning duration
+  // Warning zones: left block and right block with safe gap highlighted
+  GS.bossWarnings.push({x:0,w:gapX,until:Date.now()+warnDur,isWall:true});
+  GS.bossWarnings.push({x:gapX+gapW,w:W-(gapX+gapW),until:Date.now()+warnDur,isWall:true});
+  // Safe zone indicator (green flash)
+  GS.bossWarnings.push({x:gapX,w:gapW,until:Date.now()+warnDur,isSafe:true});
+  SoundMgr.playSE('boss_warn');
+  if(currentLang==='ja')Commentary.add('c_boss',3);
+  setTimeout(()=>{
+    if(!GS.gameActive)return;
+    // Left wall block
+    GS.fallingObjects.push({x:0,y:-blockH,w:gapX,h:blockH,speed:GS.currentFallSpeed*0.6,
+      typeId:'wall',color:'#880000',rotation:0,rotSpeed:0,isBoss:true,bounced:false,bounceVy:0,bossPoints:3,canBounce:false});
+    // Right wall block
+    GS.fallingObjects.push({x:gapX+gapW,y:-blockH,w:W-(gapX+gapW),h:blockH,speed:GS.currentFallSpeed*0.6,
+      typeId:'wall',color:'#880000',rotation:0,rotSpeed:0,isBoss:true,bounced:false,bounceVy:0,bossPoints:3,canBounce:false});
+  },warnDur);
 }
 
 // ===== Difficulty Update (stage-based + time ramp) =====
@@ -1237,6 +1270,7 @@ function gameLoop(){
     spawnFallingObject();
     if(GS.gameMode==='bossRush'){if(GS.elapsed>GS.nextBossTime){GS.nextBossTime=GS.elapsed+5000;spawnBossObject();}}
     else spawnBossObject();
+    trySpawnWallCrush();
   }
   // Update falling objects
   const pxAbs=GS.playerX/100*W;const pyAbs=groundY-GS.playerHeight;
@@ -1245,6 +1279,7 @@ function gameLoop(){
     if(GS.reverse){obj.y-=obj.speed;}else{
       if(obj.bounced){obj.y+=obj.bounceVy;obj.bounceVy+=0.5;if(obj.y>H+50){
         addScore(false,obj.bossPoints||0);GS.fallingObjects.splice(i,1);continue;}}
+      else if(obj.bigBounced){obj.y+=obj.bounceVy;obj.bounceVy+=0.4;}
       else{obj.y+=obj.speed;}
     }
     obj.rotation=(obj.rotation||0)+(obj.rotSpeed||0);
@@ -1252,9 +1287,19 @@ function gameLoop(){
     obj.x=Math.max(0,Math.min(W-obj.w,obj.x));
     // Ground collision - bounce
     if(!obj.bounced&&obj.y+obj.h>=groundY+10){
-      obj.bounced=true;obj.bounceVy=-obj.speed*0.3;
-      spawnParticles(obj.x+obj.w/2,groundY,obj.color,8,4);
-      if(obj.isBoss){GS.weatherShakeFrames=5;SoundMgr.playSE('hit');}
+      if(obj.canBounce&&!obj.bigBounced){
+        // Strong bounce - object flies back up and is still dangerous
+        obj.bigBounced=true;
+        obj.y=groundY+10-obj.h;
+        obj.bounceVy=-obj.speed*1.2-(3+Math.random()*3);
+        obj.rotSpeed=(Math.random()-0.5)*0.2;
+        spawnParticles(obj.x+obj.w/2,groundY,'#ffcc00',12,6);
+        SoundMgr.playSE('hit');
+      } else {
+        obj.bounced=true;obj.bounceVy=-obj.speed*0.3;
+        spawnParticles(obj.x+obj.w/2,groundY,obj.color,8,4);
+        if(obj.isBoss){GS.weatherShakeFrames=5;SoundMgr.playSE('hit');}
+      }
     }
     // Passed screen
     if(obj.y>H+50&&!obj.bounced){
@@ -1349,8 +1394,28 @@ function render(){
   // Boss warnings
   GS.bossWarnings=GS.bossWarnings.filter(bw=>{
     if(Date.now()>bw.until)return false;
-    ctx.fillStyle='rgba(255,0,0,'+(0.15+0.1*Math.sin(Date.now()/100))+')';
-    ctx.fillRect(bw.x,groundY-80,bw.w,80);return true;
+    const pulse=Math.sin(Date.now()/100);
+    if(bw.isSafe){
+      // Safe zone: green pulsing column
+      ctx.fillStyle='rgba(0,255,65,'+(0.08+0.06*pulse)+')';
+      ctx.fillRect(bw.x,0,bw.w,groundY+15);
+      // Arrow indicator
+      ctx.fillStyle='rgba(0,255,65,'+(0.5+0.3*pulse)+')';
+      ctx.font='bold '+Math.max(16,bw.w*0.3)+'px Courier New';ctx.textAlign='center';
+      ctx.fillText('▼ SAFE ▼',bw.x+bw.w/2,groundY*0.5);
+      ctx.textAlign='left';
+    } else if(bw.isWall){
+      // Wall crush danger: full-height red zone
+      ctx.fillStyle='rgba(255,0,0,'+(0.12+0.08*pulse)+')';
+      ctx.fillRect(bw.x,0,bw.w,groundY+15);
+      // Striped hazard pattern
+      ctx.strokeStyle='rgba(255,0,0,'+(0.3+0.15*pulse)+')';ctx.lineWidth=2;
+      for(let sy=0;sy<groundY;sy+=40){ctx.beginPath();ctx.moveTo(bw.x,sy);ctx.lineTo(bw.x+bw.w,sy+20);ctx.stroke();}
+    } else {
+      ctx.fillStyle='rgba(255,0,0,'+(0.15+0.1*pulse)+')';
+      ctx.fillRect(bw.x,groundY-80,bw.w,80);
+    }
+    return true;
   });
   // Falling objects
   GS.fallingObjects.forEach(obj=>drawFallingObject(ctx,obj));
@@ -1649,7 +1714,7 @@ function resetGameState(){
     weatherShakeFrames:0,weatherFlash:0,stageTransitionUntil:0,timeRemaining:60000,stageTimeRemaining:120,
     comboTriggered:{},scoreTriggered:{},timeTriggered:{},isSecretStage:false,
     moveDistAccum:0,lastPlayerXFrame:50,moveScoreTimer:0});
-  GS.reverse=GS.gameMode==='reverse';GS.stageStartTime=Date.now();
+  GS.reverse=GS.gameMode==='reverse';GS.stageStartTime=Date.now();nextWallCrush=0;
   const sd=STAGE_DIFFICULTY[1];GS.currentFallSpeed=sd.fallSpeed;GS.currentSpawnInterval=sd.spawnInterval;
   // Hide multi-rule HUD when not multi
   const ruleEl=document.getElementById('hud-multi-rule');
