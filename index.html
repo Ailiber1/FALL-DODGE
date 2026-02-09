@@ -254,7 +254,7 @@ body{background:radial-gradient(ellipse at 50% 40%,#002a10 0%,#001208 40%,#000a0
 <div class="room-id-box">
 <div class="room-id-label">🔑 <span>ROOM ID</span></div>
 <input type="text" id="room-input" placeholder="ルームIDを入力..." maxlength="6" autocomplete="off" spellcheck="false">
-<p style="font-size:12px;color:rgba(255,204,0,0.5);margin:10px 0 0;line-height:1.6" data-i18n="multi_room_hint">同じルームIDを入力したプレイヤー同士がマッチングします<br>空欄で新規ルームを作成します</p>
+<p style="font-size:12px;color:rgba(255,204,0,0.5);margin:10px 0 0;line-height:1.6" data-i18n="multi_room_hint">同じルームIDを入力したプレイヤー同士がマッチングします<br>最初に入力した人がルームを作成します</p>
 </div>
 <button class="btn" id="btn-join-room" style="font-size:16px;padding:14px;margin-top:8px;background:rgba(0,255,65,0.06)" data-i18n="btn_join_room">▶ ルームに参加</button>
 <button class="btn btn-sub" id="btn-cancel-multi" data-close="multi-modal" style="margin-top:4px">キャンセル</button>
@@ -321,7 +321,7 @@ const i18n = {
     c_start:'ゲームスタート！生き延びろ！',c_first:'最初の回避成功！いい滑り出しだ',c_combo2:'コンボ発動！この調子だ',c_combo5:'フィーバー突入！止まらない！',c_combo10:'MAX!! 神回避の領域だ！',c_nearmiss:'危ない！紙一重だった！',c_shield:'シールドGET！保険をかけた',c_shield_break:'シールド消滅！残りは腕だけだ',c_boss:'巨大落下物接近！気をつけろ！',c_boss_dodge:'ナイス！巨大物を回避した！',c_stage:'ステージ{n}突入！',c_score100:'100回避達成！まだまだ行ける！',c_1min:'1分経過！タフな生存者だ',c_2min:'2分経過！もはや伝説級だ',c_pout:'P{n}が脱落！残り{r}人の戦い！',c_final:'一騎打ち！最後の勝負だ！',c_storm:'嵐が来た！落下物が斜めに飛ぶぞ',
     mode_normal:'ノーマル',mode_survival:'サバイバル',mode_timeAttack:'タイムアタック',mode_bossRush:'ボスラッシュ',mode_reverse:'リバース',mode_coop:'協力モード',
     multi_individual:'個人戦',multi_team:'チーム戦',multi_coop:'協力',
-    multi_room_hint:'同じルームIDを入力したプレイヤー同士がマッチングします<br>空欄で新規ルームを作成します',
+    multi_room_hint:'同じルームIDを入力したプレイヤー同士がマッチングします<br>最初に入力した人がルームを作成します',
     btn_join_room:'ルームに参加',btn_leave_lobby:'退出',
     lobby_rules_label:'ルール設定',lobby_mode_label:'対戦モード:',lobby_diff_label:'難易度:',
     lobby_rules_readonly:'※ ルール変更はルーム作成者のみ可能です',
@@ -332,7 +332,7 @@ const i18n = {
     c_start:'Game start! Survive!',c_first:'First dodge! Good start!',c_combo2:'Combo activated! Keep it up!',c_combo5:'FEVER mode! Unstoppable!',c_combo10:'MAX!! Godlike dodging!',c_nearmiss:'Close call! That was tight!',c_shield:'Shield acquired! Safety net!',c_shield_break:'Shield gone! Skill only now!',c_boss:'BOSS incoming! Watch out!',c_boss_dodge:'Nice! Boss dodged!',c_stage:'Stage {n}!',c_score100:'100 dodges! Still going!',c_1min:'1 minute survived! Tough!',c_2min:'2 minutes! Legendary!',c_pout:'P{n} is out! {r} remain!',c_final:'1v1! Final showdown!',c_storm:'Storm! Objects flying sideways!',
     mode_normal:'Normal',mode_survival:'Survival',mode_timeAttack:'Time Attack',mode_bossRush:'Boss Rush',mode_reverse:'Reverse',mode_coop:'Co-op',
     multi_individual:'Individual',multi_team:'Team',multi_coop:'Co-op',
-    multi_room_hint:'Players with the same Room ID are matched together<br>Leave blank to create a new room',
+    multi_room_hint:'Players with the same Room ID are matched together<br>The first player to enter creates the room',
     btn_join_room:'Join Room',btn_leave_lobby:'Leave',
     lobby_rules_label:'Rules',lobby_mode_label:'Mode:',lobby_diff_label:'Difficulty:',
     lobby_rules_readonly:'* Only the room creator can change rules',
@@ -1541,10 +1541,14 @@ function startScoreAttack(){
 }
 
 // ===== Multiplayer =====
-function generateRoomId(){return Math.random().toString(36).substr(2,6).toUpperCase();}
 function joinRoom(){
-  let roomId=document.getElementById('room-input').value.trim().toUpperCase();
-  if(!roomId)roomId=generateRoomId();
+  const roomId=document.getElementById('room-input').value.trim().toUpperCase();
+  if(!roomId){
+    showToast(currentLang==='ja'?'🔑 ルームIDを入力してください':'🔑 Please enter a Room ID');
+    SoundMgr.playSE('error');
+    document.getElementById('room-input').focus();
+    return;
+  }
   GS.roomId=roomId;GS.isMulti=true;
   SyncLayer.connect(roomId);
   const roomRef=database.ref('rooms/'+roomId);
