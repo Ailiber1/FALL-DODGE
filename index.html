@@ -37,7 +37,7 @@ body{background:var(--bg-dark);color:var(--text-primary);font-family:'Courier Ne
 .btn-group .btn{flex:1}
 .btn-group .btn.selected{border-color:var(--neon-green);box-shadow:var(--border-glow);background:rgba(0,255,65,0.1)}
 .spacer{height:12px}
-.footer{position:fixed;top:12px;left:12px;display:flex;gap:10px;z-index:20}
+.footer{position:fixed;bottom:12px;right:12px;display:flex;gap:10px;z-index:20}
 .footer-btn{cursor:pointer;width:44px;height:44px;border-radius:50%;border:1px solid var(--neon-green-dim);background:rgba(0,20,10,0.85);display:flex;align-items:center;justify-content:center;font-size:20px;transition:all 0.2s;color:var(--text-dim)}
 .footer-btn:hover{border-color:var(--neon-green);box-shadow:var(--border-glow)}
 .footer-btn.active-toggle{color:var(--neon-green);border-color:var(--neon-green);text-shadow:0 0 8px var(--neon-green-glow)}
@@ -52,15 +52,20 @@ body{background:var(--bg-dark);color:var(--text-primary);font-family:'Courier Ne
 .modal .close-btn{position:absolute;top:10px;right:14px;color:var(--text-dim);cursor:pointer;font-size:20px;z-index:5}
 .modal .close-btn:hover{color:var(--neon-green)}
 #game-screen{padding:0;justify-content:flex-start}
-.game-header{width:100%;padding:4px 10px;background:rgba(0,10,5,0.9);border-bottom:1px solid var(--neon-green-dim);font-size:11px;color:var(--text-dim);letter-spacing:1px;z-index:5;display:flex;justify-content:space-between}
-.hud-bar{width:100%;padding:8px 14px;background:rgba(0,10,5,0.95);border-bottom:2px solid rgba(0,255,65,0.3);display:flex;justify-content:space-between;align-items:center;font-size:15px;z-index:5;flex-wrap:wrap;gap:6px}
-.hud-score{color:var(--neon-green);font-weight:bold;font-size:22px;text-shadow:0 0 10px var(--neon-green-glow)}
-.hud-combo{color:var(--neon-gold);font-weight:bold;font-size:18px;animation:pulse-glow 0.5s ease-in-out infinite}
-.hud-info{display:flex;gap:14px;align-items:center;font-size:16px;font-weight:bold}
-.hud-time{font-size:20px;color:#ff6644;text-shadow:0 0 8px rgba(255,100,60,0.6)}
+.game-hud{width:100%;background:rgba(0,10,5,0.95);border-bottom:2px solid rgba(0,255,65,0.3);z-index:5;padding:0}
+.hud-row1{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;gap:8px;flex-wrap:wrap}
+.hud-left{display:flex;align-items:center;gap:12px}
+.hud-center{display:flex;align-items:center;gap:12px}
+.hud-right{display:flex;align-items:center;gap:12px}
+.hud-score{color:var(--neon-green);font-weight:bold;font-size:22px;text-shadow:0 0 10px var(--neon-green-glow);white-space:nowrap}
+.hud-combo{color:var(--neon-gold);font-weight:bold;font-size:16px;animation:pulse-glow 0.5s ease-in-out infinite}
+.hud-time{font-size:20px;color:#ff6644;text-shadow:0 0 8px rgba(255,100,60,0.6);font-weight:bold;white-space:nowrap}
 .hud-time.warning{color:#ff2222;animation:pulse-glow 0.5s ease-in-out infinite;text-shadow:0 0 12px rgba(255,0,0,0.8)}
-.hud-players{width:100%;display:flex;gap:4px;padding:2px 10px;background:rgba(0,10,5,0.8);font-size:11px}
-.hud-players .p-badge{padding:2px 8px;border:1px solid;font-size:11px}
+.hud-stage{font-size:14px;color:var(--neon-green);font-weight:bold;white-space:nowrap}
+.hud-player-name{font-size:13px;font-weight:bold;white-space:nowrap}
+.hud-extra{font-size:13px;color:var(--text-dim);display:flex;gap:8px;align-items:center}
+.hud-row2{display:flex;gap:6px;padding:3px 12px;align-items:center;border-top:1px solid rgba(0,255,65,0.1)}
+.hud-row2 .p-badge{padding:2px 10px;border:1px solid;font-size:12px;font-weight:bold;white-space:nowrap}
 .game-canvas-wrap{flex:1;width:100%;display:flex;justify-content:center;align-items:center;overflow:hidden;position:relative}
 #gameCanvas{background:#000a04;display:block;width:100%;height:100%}
 .mobile-controls{width:100%;padding:8px 10px;background:rgba(0,10,5,0.95);border-top:1px solid var(--neon-green-dim);display:flex;justify-content:space-between;align-items:center;gap:8px;z-index:5}
@@ -133,19 +138,28 @@ body{background:var(--bg-dark);color:var(--text-primary);font-family:'Courier Ne
 
 <!-- Game -->
 <div id="game-screen" class="screen">
-<div class="game-header"><span id="gh-left">SYSTEM ACCESS // FALL DODGE</span><span id="gh-right"></span></div>
-<div class="hud-bar">
-<span class="hud-score" id="hud-score">SCORE: 000</span>
-<span class="hud-combo" id="hud-combo" style="display:none"></span>
-<div class="hud-info">
-<span id="hud-weather"></span>
-<span id="hud-powerup"></span>
-<span class="hud-time" id="hud-time"></span>
-<span id="hud-difficulty"></span>
+<div class="game-hud">
+<div class="hud-row1">
+  <div class="hud-left">
+    <span class="hud-score" id="hud-score">SCORE: 000</span>
+    <span class="hud-combo" id="hud-combo" style="display:none"></span>
+  </div>
+  <div class="hud-center">
+    <span class="hud-stage" id="hud-difficulty">STAGE 1</span>
+    <span class="hud-player-name" id="gh-player"></span>
+  </div>
+  <div class="hud-right">
+    <span class="hud-extra"><span id="hud-weather"></span><span id="hud-powerup"></span></span>
+    <span class="hud-time" id="hud-time"></span>
+  </div>
+</div>
+<div class="hud-row2" id="hud-players" style="display:none"></div>
+</div>
+<div class="game-canvas-wrap"><canvas id="gameCanvas"></canvas>
+<div id="countdown-overlay" style="display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,5,2,0.7);z-index:10;display:none;align-items:center;justify-content:center">
+<span id="countdown-text" style="font-size:clamp(80px,20vw,160px);font-weight:bold;color:var(--neon-green);text-shadow:0 0 40px var(--neon-green-glow),0 0 80px var(--neon-green-glow);font-family:inherit"></span>
 </div>
 </div>
-<div class="hud-players" id="hud-players" style="display:none"></div>
-<div class="game-canvas-wrap"><canvas id="gameCanvas"></canvas></div>
 <div class="commentary-bar" id="commentary-bar"></div>
 <div class="mobile-controls" id="mobile-controls">
 <button class="ctrl-btn" id="ctrl-left">← 左</button>
@@ -1043,6 +1057,8 @@ function gameLoop(){
       if(!cpu.alive)return;
       if(cpu.x-15<obj.x+obj.w&&cpu.x+15>obj.x&&groundY-40<obj.y+obj.h&&groundY>obj.y){
         cpu.alive=false;spawnParticles(cpu.x,groundY-20,cpu.color,12,6);
+        const cpuBadge=document.getElementById('badge-cpu-'+cpu.pIdx);
+        if(cpuBadge){cpuBadge.style.opacity='0.3';cpuBadge.textContent='● CPU'+cpu.pIdx+' ☠';}
         SoundMgr.playSE('hit');
         Commentary.add(t('c_pout').replace('{n}',cpu.pIdx+1).replace('{r}',GS.cpuPlayers.filter(c=>c.alive).length),2);
       }
@@ -1184,22 +1200,27 @@ function updateHUD(){
   });
   document.getElementById('hud-powerup').textContent=puText;
   const timeEl=document.getElementById('hud-time');
+  const diffEl=document.getElementById('hud-difficulty');
   if(GS.gameMode==='scoreAttack'){
-    document.getElementById('hud-difficulty').textContent='SCORE ATTACK';
+    diffEl.textContent='🏆 SCORE ATTACK';
     const elapsed=Math.floor((Date.now()-GS.gameStartTime)/1000);
     const eMin=Math.floor(elapsed/60);const eSec=elapsed%60;
     timeEl.textContent='⏱ '+eMin+':'+String(eSec).padStart(2,'0');
     timeEl.className='hud-time';
   } else {
-    document.getElementById('hud-difficulty').textContent='STAGE '+GS.currentStage;
+    const stLabel=currentLang==='ja'?STAGE_CONFIG[GS.currentStage].labelJa:STAGE_CONFIG[GS.currentStage].label;
+    diffEl.textContent='STAGE '+GS.currentStage+' / '+stLabel;
     const timeLeft=Math.ceil(GS.stageTimeRemaining||0);
     const tMin=Math.floor(timeLeft/60);const tSec=timeLeft%60;
     timeEl.textContent='⏱ '+tMin+':'+String(tSec).padStart(2,'0');
     timeEl.className=timeLeft<=30?'hud-time warning':'hud-time';
   }
-  const ghRight=document.getElementById('gh-right');
-  ghRight.textContent=GS.gameMode==='scoreAttack'?'SCORE ATTACK':
-    'STAGE '+GS.currentStage+' / '+(currentLang==='ja'?STAGE_CONFIG[GS.currentStage].labelJa:STAGE_CONFIG[GS.currentStage].label);
+  // Player info
+  const ghPlayer=document.getElementById('gh-player');
+  if(GS.username&&!GS.isGuest){
+    const pc=PLAYER_COLORS[GS.playerIndex];
+    ghPlayer.innerHTML='<span style="color:'+pc.hex+'">● '+GS.username+'</span>';
+  } else ghPlayer.textContent='';
   // Dash gauge
   document.getElementById('dash-fill').style.width=Dash.getGaugePercent()+'%';
   const dashCd=Math.max(0,GS.dashCooldown-(Date.now()-GS.dashLastTime));
@@ -1333,11 +1354,27 @@ function resetGameState(){
   const sd=STAGE_DIFFICULTY[1];GS.currentFallSpeed=sd.fallSpeed;GS.currentSpawnInterval=sd.spawnInterval;
 }
 
+// ===== Countdown =====
+function showCountdown(callback){
+  const overlay=document.getElementById('countdown-overlay');
+  const text=document.getElementById('countdown-text');
+  overlay.style.display='flex';
+  let count=3;
+  text.textContent=count;
+  SoundMgr.playSE('click');
+  const iv=setInterval(()=>{
+    count--;
+    if(count>0){text.textContent=count;SoundMgr.playSE('click');}
+    else if(count===0){text.textContent='GO!';text.style.color='var(--neon-gold)';text.style.textShadow='0 0 40px rgba(255,220,0,0.8),0 0 80px rgba(255,220,0,0.5)';SoundMgr.playSE('stage');}
+    else{clearInterval(iv);overlay.style.display='none';text.style.color='var(--neon-green)';text.style.textShadow='0 0 40px var(--neon-green-glow),0 0 80px var(--neon-green-glow)';callback();}
+  },800);
+}
+
 // ===== Start Solo Game =====
 function startSoloGame(){
   hideModal('mode-modal');resetGameState();
   GS.gameMode='normal';GS.difficulty='normal';
-  GS.isMulti=false;GS.isHost=true;GS.gameStartTime=Date.now();GS.stageStartTime=Date.now();GS.gameActive=true;
+  GS.isMulti=false;GS.isHost=true;
   GS.cpuPlayers=[];
   const delays={rookie:500,normal:200,expert:40};
   cpuSetup.forEach((lv,i)=>{
@@ -1347,8 +1384,25 @@ function startSoloGame(){
   });
   showScreen('game');setupCanvas();
   GS.cpuPlayers.forEach((cpu,ci)=>{cpu.x=W*(0.2+ci*0.3);});
+  // Show player badges in HUD
+  const hpEl=document.getElementById('hud-players');
+  if(GS.cpuPlayers.length>0){
+    hpEl.style.display='flex';hpEl.innerHTML='';
+    const myPc=PLAYER_COLORS[0];
+    const myBadge=document.createElement('span');myBadge.className='p-badge';myBadge.style.borderColor=myPc.hex;myBadge.style.color=myPc.hex;
+    myBadge.textContent='● '+(GS.username||'YOU');myBadge.id='badge-0';hpEl.appendChild(myBadge);
+    GS.cpuPlayers.forEach(cpu=>{
+      const pc=PLAYER_COLORS[cpu.pIdx];
+      const lvLabel={rookie:'弱',normal:'中',expert:'強'}[cpu.level]||'';
+      const badge=document.createElement('span');badge.className='p-badge';badge.style.borderColor=pc.hex;badge.style.color=pc.hex;
+      badge.textContent='● CPU'+cpu.pIdx+' ('+lvLabel+')';badge.id='badge-cpu-'+cpu.pIdx;hpEl.appendChild(badge);
+    });
+  } else {hpEl.style.display='none';}
   SoundMgr.changeBGMForStage(1);
-  Commentary.queue=[];Commentary.add('c_start',1);gameLoop();
+  showCountdown(()=>{
+    GS.gameStartTime=Date.now();GS.stageStartTime=Date.now();GS.gameActive=true;
+    Commentary.queue=[];Commentary.add('c_start',1);gameLoop();
+  });
 }
 
 // ===== Score Attack Mode =====
@@ -1356,13 +1410,16 @@ const SCORE_ATTACK_DIFF={fallSpeed:7,spawnInterval:220,maxObjects:22};
 function startScoreAttack(){
   resetGameState();
   GS.gameMode='scoreAttack';GS.difficulty='hard';
-  GS.isMulti=false;GS.isHost=true;GS.gameStartTime=Date.now();GS.stageStartTime=Date.now();GS.gameActive=true;
+  GS.isMulti=false;GS.isHost=true;
   GS.currentStage=5;GS.cpuPlayers=[];
   GS.currentFallSpeed=SCORE_ATTACK_DIFF.fallSpeed;
   GS.currentSpawnInterval=SCORE_ATTACK_DIFF.spawnInterval;
   showScreen('game');setupCanvas();
   SoundMgr.changeBGMForStage(5);
-  Commentary.queue=[];Commentary.add('c_start',1);gameLoop();
+  showCountdown(()=>{
+    GS.gameStartTime=Date.now();GS.stageStartTime=Date.now();GS.gameActive=true;
+    Commentary.queue=[];Commentary.add('c_start',1);gameLoop();
+  });
 }
 
 // ===== Multiplayer =====
@@ -1406,7 +1463,9 @@ function setupLobby(roomId){
     const container=document.getElementById('lobby-players');container.innerHTML='';
     for(let i=0;i<4;i++){const p=players[i];const pc=PLAYER_COLORS[i];
       const div=document.createElement('div');div.className='lobby-player'+(p?'':' empty');
-      div.innerHTML='<div class="dot" style="background:'+pc.hex+'"></div><span style="color:'+pc.hex+'">'+pc.name+': '+(p?p.username+(i===GS.playerIndex?' (YOU)':''):t('waiting'))+'</span>';
+      const isYou=i===GS.playerIndex;
+      const name=p?(p.username||pc.name)+(isYou?' (YOU)':''):t('waiting');
+      div.innerHTML='<div class="dot" style="background:'+pc.hex+'"></div><span style="color:'+pc.hex+'">● '+name+'</span>';
       container.appendChild(div);
     }
     if(GS.isHost&&Object.keys(players).length>=2)document.getElementById('btn-start-game').style.display='block';
@@ -1418,13 +1477,16 @@ function setupLobby(roomId){
   roomRef.child('players/'+GS.playerIndex).onDisconnect().remove();
 }
 function startMultiGame(){
-  resetGameState();GS.isMulti=true;GS.gameActive=true;GS.gameStartTime=Date.now();GS.cpuPlayers=[];
+  resetGameState();GS.isMulti=true;GS.cpuPlayers=[];
   showScreen('game');setupCanvas();SoundMgr.playMultiBGM();
   const hpEl=document.getElementById('hud-players');hpEl.style.display='flex';hpEl.innerHTML='';
   Object.entries(GS.players).forEach(([idx,p])=>{
     if(!p)return;const pc=PLAYER_COLORS[parseInt(idx)];
     const badge=document.createElement('span');badge.className='p-badge';badge.style.borderColor=pc.hex;badge.style.color=pc.hex;
-    badge.textContent=pc.name+': '+(parseInt(idx)===GS.playerIndex?'YOU':(p.username||''));badge.id='badge-'+idx;hpEl.appendChild(badge);
+    const isYou=parseInt(idx)===GS.playerIndex;
+    const displayName=p.username||(pc.name);
+    badge.innerHTML='● '+displayName+(isYou?' (YOU)':'');
+    badge.id='badge-'+idx;hpEl.appendChild(badge);
   });
   if(!GS.isHost){
     SyncLayer.onFallingObjectsUpdate(objs=>{if(objs)GS.fallingObjects=objs;});
@@ -1434,12 +1496,15 @@ function startMultiGame(){
     if(!players)return;GS.players=players;
     Object.entries(players).forEach(([idx,p])=>{
       const badge=document.getElementById('badge-'+idx);
-      if(badge&&p&&!p.alive){badge.style.opacity='0.3';badge.textContent=PLAYER_COLORS[parseInt(idx)].name+' ☠';}
+      if(badge&&p&&!p.alive){badge.style.opacity='0.3';badge.innerHTML='● '+(p.username||PLAYER_COLORS[parseInt(idx)].name)+' ☠';}
     });
     const alive=Object.entries(players).filter(([k,v])=>v&&v.alive);
     if(alive.length<=1&&GS.gameActive){GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);setTimeout(()=>showResult(),500);}
   });
-  Commentary.queue=[];Commentary.add('c_start',1);gameLoop();
+  showCountdown(()=>{
+    GS.gameStartTime=Date.now();GS.gameActive=true;
+    Commentary.queue=[];Commentary.add('c_start',1);gameLoop();
+  });
 }
 function rematch(){
   if(GS.isMulti&&GS.roomId){
