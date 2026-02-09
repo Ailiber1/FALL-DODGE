@@ -116,9 +116,8 @@ body{background:var(--bg-dark);color:var(--text-primary);font-family:'Courier Ne
 <div class="error-text" id="username-error"></div>
 <div class="spacer"></div>
 <button class="btn" id="btn-register" data-i18n="btn_register_play">登録してゲームを始める</button>
-<button class="btn btn-sub" id="btn-guest" data-i18n="btn_guest_play">登録しないでゲームを始める</button>
+<button class="btn" id="btn-guest" data-i18n="btn_guest_play" style="font-size:16px;padding:14px;background:rgba(0,255,65,0.08)">▶ 登録しないでゲームを始める</button>
 <div class="spacer"></div>
-<button class="btn" id="btn-solo" style="font-size:18px;padding:16px;background:rgba(0,255,65,0.08)">▶ ゲームを始める</button>
 <button class="btn" id="btn-multi" data-i18n="btn_multi">マルチプレイ（最大4人）</button>
 <div class="spacer"></div>
 <button class="btn btn-sub" id="btn-rules" data-i18n="btn_rules">ルール説明を見る</button>
@@ -230,6 +229,19 @@ body{background:var(--bg-dark);color:var(--text-primary);font-family:'Courier Ne
 <button class="btn btn-sub" id="btn-cancel-multi" data-close="multi-modal">キャンセル</button>
 </div></div>
 
+<!-- Multi Registration Modal -->
+<div class="modal-overlay" id="multi-reg-modal">
+<div class="modal"><span class="close-btn" data-close="multi-reg-modal">✕</span>
+<h2>マルチプレイ参加登録</h2>
+<p style="font-size:13px;color:var(--text-dim);margin:8px 0">マルチプレイに参加するにはユーザー名を登録してください</p>
+<label>USER NAME</label>
+<input type="text" id="multi-username-input" placeholder="名前を入力..." maxlength="16">
+<div class="error-text" id="multi-username-error" style="display:none"></div>
+<div class="spacer"></div>
+<button class="btn" id="btn-multi-register">登録してマルチプレイに参加</button>
+<button class="btn btn-sub" data-close="multi-reg-modal">キャンセル</button>
+</div></div>
+
 <!-- Lobby -->
 <div id="lobby-screen" class="screen">
 <div class="panel" style="max-width:500px">
@@ -267,14 +279,14 @@ const database = firebase.database();
 
 // ===== i18n =====
 const i18n = {
-  ja:{catchcopy:'一瞬の判断が、生存を決める',btn_register_play:'登録してゲームを始める',btn_guest_play:'登録しないでゲームを始める',btn_solo:'一人でプレイ（CPU対戦）',btn_multi:'マルチプレイ（最大4人）',btn_rules:'ルール説明を見る',btn_ranking:'ランキングを見る',difficulty_easy:'簡単',difficulty_normal:'普通',difficulty_hard:'難しい',game_over:'GAME OVER',game_set:'GAME SET!',winner:'勝者',score_label:'スコア',rematch:'再戦',back_to_title:'タイトルに戻る',retry:'もう一度プレイ',waiting:'待機中...',game_start:'ゲーム開始',disconnected:'さんが退席しました',near_miss:'NEAR MISS!',combo:'COMBO!',fever:'FEVER!',shield_break:'SHIELD BREAK!',stage_label:'ステージ',weather_rain:'雨',weather_thunder:'雷',weather_storm:'嵐',bgm_on:'BGM: ON',bgm_off:'BGM: OFF',se_on:'SE: ON',se_off:'SE: OFF',
+  ja:{catchcopy:'一瞬の判断が、生存を決める',btn_register_play:'登録してゲームを始める',btn_guest_play:'▶ 登録しないでゲームを始める',btn_multi:'マルチプレイ（最大4人）',btn_rules:'ルール説明を見る',btn_ranking:'ランキングを見る',difficulty_easy:'簡単',difficulty_normal:'普通',difficulty_hard:'難しい',game_over:'GAME OVER',game_set:'GAME SET!',winner:'勝者',score_label:'スコア',rematch:'再戦',back_to_title:'タイトルに戻る',retry:'もう一度プレイ',waiting:'待機中...',game_start:'ゲーム開始',disconnected:'さんが退席しました',near_miss:'NEAR MISS!',combo:'COMBO!',fever:'FEVER!',shield_break:'SHIELD BREAK!',stage_label:'ステージ',weather_rain:'雨',weather_thunder:'雷',weather_storm:'嵐',bgm_on:'BGM: ON',bgm_off:'BGM: OFF',se_on:'SE: ON',se_off:'SE: OFF',
     rule_text:'<b>FALL DODGE ルール</b><br><br>・上空から落下物（日用品・工具）が降ってくる<br>・← → キーで左右移動し、落下物を回避<br>・Shift / Space でダッシュ（短距離無敵移動）<br>・落下物に当たったらゲームオーバー<br>・回避するとスコア+1、ニアミスでボーナス<br>・連続回避でコンボ倍率アップ<br>・★パワーアップアイテムで一時的に強化<br>・時間経過で難易度上昇<br>・ステージごとに背景とBGMが変化<br><br><b>パワーアップ</b><br>🛡️ シールド: 被弾1回無効<br>⚡ スピード: 移動速度2倍(5秒)<br>🔽 スロー: 落下速度半減(3秒)<br>🔲 縮小: 当たり判定半減(5秒)<br><br><b>マルチプレイ</b><br>・最大4人同時対戦<br>・最後まで生き残った人が勝利<br>・💀妨害アイテムで他プレイヤーに追加落下物',
     c_start:'ゲームスタート！生き延びろ！',c_first:'最初の回避成功！いい滑り出しだ',c_combo2:'コンボ発動！この調子だ',c_combo5:'フィーバー突入！止まらない！',c_combo10:'MAX!! 神回避の領域だ！',c_nearmiss:'危ない！紙一重だった！',c_shield:'シールドGET！保険をかけた',c_shield_break:'シールド消滅！残りは腕だけだ',c_boss:'巨大落下物接近！気をつけろ！',c_boss_dodge:'ナイス！巨大物を回避した！',c_stage:'ステージ{n}突入！',c_score100:'100回避達成！まだまだ行ける！',c_1min:'1分経過！タフな生存者だ',c_2min:'2分経過！もはや伝説級だ',c_pout:'P{n}が脱落！残り{r}人の戦い！',c_final:'一騎打ち！最後の勝負だ！',c_storm:'嵐が来た！落下物が斜めに飛ぶぞ',
     mode_normal:'ノーマル',mode_survival:'サバイバル',mode_timeAttack:'タイムアタック',mode_bossRush:'ボスラッシュ',mode_reverse:'リバース',mode_coop:'協力モード',
     multi_individual:'個人戦',multi_team:'チーム戦',multi_coop:'協力',
     stage1:'工事現場',stage2:'キッチン',stage3:'オフィス',stage4:'夜の街',stage5:'宇宙'
   },
-  en:{catchcopy:'A split-second decision determines survival.',btn_register_play:'Register & Play',btn_guest_play:'Play as Guest',btn_solo:'Solo Play (vs CPU)',btn_multi:'Multiplayer (up to 4)',btn_rules:'How to Play',btn_ranking:'Rankings',difficulty_easy:'Easy',difficulty_normal:'Normal',difficulty_hard:'Hard',game_over:'GAME OVER',game_set:'GAME SET!',winner:'WINNER',score_label:'SCORE',rematch:'Rematch',back_to_title:'Back to Title',retry:'Play Again',waiting:'Waiting...',game_start:'Start Game',disconnected:' disconnected',near_miss:'NEAR MISS!',combo:'COMBO!',fever:'FEVER!',shield_break:'SHIELD BREAK!',stage_label:'STAGE',weather_rain:'Rain',weather_thunder:'Thunder',weather_storm:'Storm',bgm_on:'BGM: ON',bgm_off:'BGM: OFF',se_on:'SE: ON',se_off:'SE: OFF',
+  en:{catchcopy:'A split-second decision determines survival.',btn_register_play:'Register & Play',btn_guest_play:'▶ Play as Guest',btn_multi:'Multiplayer (up to 4)',btn_rules:'How to Play',btn_ranking:'Rankings',difficulty_easy:'Easy',difficulty_normal:'Normal',difficulty_hard:'Hard',game_over:'GAME OVER',game_set:'GAME SET!',winner:'WINNER',score_label:'SCORE',rematch:'Rematch',back_to_title:'Back to Title',retry:'Play Again',waiting:'Waiting...',game_start:'Start Game',disconnected:' disconnected',near_miss:'NEAR MISS!',combo:'COMBO!',fever:'FEVER!',shield_break:'SHIELD BREAK!',stage_label:'STAGE',weather_rain:'Rain',weather_thunder:'Thunder',weather_storm:'Storm',bgm_on:'BGM: ON',bgm_off:'BGM: OFF',se_on:'SE: ON',se_off:'SE: OFF',
     rule_text:'<b>FALL DODGE Rules</b><br><br>• Objects fall from above<br>• Use ← → to move and dodge<br>• Shift/Space to dash (short invincible move)<br>• Hit = Game Over<br>• Dodge = Score+1, Near Miss = Bonus<br>• Consecutive dodges increase combo multiplier<br>• ★ Power-ups give temporary boosts<br>• Difficulty increases over time<br>• Background & BGM change per stage<br><br><b>Power-ups</b><br>🛡️ Shield: Block 1 hit<br>⚡ Speed: 2x speed (5s)<br>🔽 Slow: Half fall speed (3s)<br>🔲 Shrink: Half hitbox (5s)<br><br><b>Multiplayer</b><br>• Up to 4 players online<br>• Last one standing wins<br>• 💀 Sabotage adds objects to others',
     c_start:'Game start! Survive!',c_first:'First dodge! Good start!',c_combo2:'Combo activated! Keep it up!',c_combo5:'FEVER mode! Unstoppable!',c_combo10:'MAX!! Godlike dodging!',c_nearmiss:'Close call! That was tight!',c_shield:'Shield acquired! Safety net!',c_shield_break:'Shield gone! Skill only now!',c_boss:'BOSS incoming! Watch out!',c_boss_dodge:'Nice! Boss dodged!',c_stage:'Stage {n}!',c_score100:'100 dodges! Still going!',c_1min:'1 minute survived! Tough!',c_2min:'2 minutes! Legendary!',c_pout:'P{n} is out! {r} remain!',c_final:'1v1! Final showdown!',c_storm:'Storm! Objects flying sideways!',
     mode_normal:'Normal',mode_survival:'Survival',mode_timeAttack:'Time Attack',mode_bossRush:'Boss Rush',mode_reverse:'Reverse',mode_coop:'Co-op',
@@ -1427,11 +1439,24 @@ function setupUI(){
     const name=document.getElementById('username-input').value.trim();
     if(!name){document.getElementById('username-error').style.display='block';document.getElementById('username-error').textContent='名前を入力してください';SoundMgr.playSE('error');return;}
     try{await registerUser(name);GS.username=name;GS.isGuest=false;localStorage.setItem('fd_username',name);showToast('登録完了: '+name);SoundMgr.playSE('click');document.getElementById('username-error').style.display='none';
+      setupSoloModal();showModal('mode-modal');
     }catch(err){if(err==='taken'){document.getElementById('username-error').style.display='block';document.getElementById('username-error').textContent='このネームは他のユーザーが使用中です';SoundMgr.playSE('error');}}
   });
-  document.getElementById('btn-guest').addEventListener('click',()=>{GS.username=null;GS.isGuest=true;SoundMgr.playSE('click');showToast('ゲストモードで開始');});
-  document.getElementById('btn-solo').addEventListener('click',()=>{SoundMgr.playSE('click');setupSoloModal();showModal('mode-modal');});
-  document.getElementById('btn-multi').addEventListener('click',()=>{SoundMgr.playSE('click');setupMultiModal();showModal('multi-modal');});
+  document.getElementById('btn-guest').addEventListener('click',()=>{GS.username=null;GS.isGuest=true;SoundMgr.playSE('click');setupSoloModal();showModal('mode-modal');});
+  document.getElementById('btn-multi').addEventListener('click',()=>{
+    SoundMgr.playSE('click');
+    if(GS.username&&!GS.isGuest){setupMultiModal();showModal('multi-modal');}
+    else{document.getElementById('multi-username-input').value='';document.getElementById('multi-username-error').style.display='none';showModal('multi-reg-modal');}
+  });
+  document.getElementById('btn-multi-register').addEventListener('click',async()=>{
+    const name=document.getElementById('multi-username-input').value.trim();
+    if(!name){document.getElementById('multi-username-error').style.display='block';document.getElementById('multi-username-error').textContent='名前を入力してください';SoundMgr.playSE('error');return;}
+    try{await registerUser(name);GS.username=name;GS.isGuest=false;localStorage.setItem('fd_username',name);
+      document.getElementById('username-input').value=name;
+      SoundMgr.playSE('click');showToast('登録完了: '+name);hideModal('multi-reg-modal');
+      setupMultiModal();showModal('multi-modal');
+    }catch(err){if(err==='taken'){document.getElementById('multi-username-error').style.display='block';document.getElementById('multi-username-error').textContent='このネームは他のユーザーが使用中です';SoundMgr.playSE('error');}}
+  });
   document.getElementById('btn-rules').addEventListener('click',()=>{SoundMgr.playSE('click');document.getElementById('rule-content').innerHTML=t('rule_text');showModal('rule-modal');});
   document.getElementById('btn-ranking').addEventListener('click',()=>{SoundMgr.playSE('click');loadRankings();showModal('ranking-modal');});
   document.getElementById('toggle-bgm').addEventListener('click',function(){SoundMgr.toggleBGM();this.textContent=SoundMgr.bgmEnabled?'🎵':'🎵';this.classList.toggle('active-toggle',SoundMgr.bgmEnabled);this.classList.toggle('off',!SoundMgr.bgmEnabled);});
