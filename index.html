@@ -7,8 +7,9 @@
 <style>
 :root{--neon-green:#00ff41;--neon-green-dim:#00aa2a;--neon-green-glow:rgba(0,255,65,0.6);--neon-cyan:#00ffff;--neon-pink:#ff00ff;--neon-yellow:#ffff00;--neon-red:#ff3366;--neon-gold:#ffcc00;--neon-purple:#b450ff;--bg-dark:#000a04;--bg-darker:#050505;--bg-panel:rgba(0,20,10,0.85);--text-primary:#c0ffc0;--text-dim:#4a8a4a;--border-glow:0 0 8px var(--neon-green),inset 0 0 8px rgba(0,255,65,0.1)}
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:radial-gradient(ellipse at 50% 40%,#002a10 0%,#001208 40%,#000a04 70%,#000502 100%);color:var(--text-primary);font-family:'Courier New',monospace;overflow:hidden;width:100vw;height:100vh;height:100dvh;position:relative}
-.screen{display:none;position:absolute;top:0;left:0;width:100%;height:100%;height:100dvh;z-index:10}
+html{overflow:hidden;position:fixed;width:100%;height:100%;touch-action:none;overscroll-behavior:none}
+body{background:radial-gradient(ellipse at 50% 40%,#002a10 0%,#001208 40%,#000a04 70%,#000502 100%);color:var(--text-primary);font-family:'Courier New',monospace;overflow:hidden;width:100vw;height:100vh;height:100dvh;position:fixed;top:0;left:0;touch-action:none;overscroll-behavior:none;-webkit-overflow-scrolling:auto}
+.screen{display:none;position:absolute;top:0;left:0;width:100%;height:100%;height:100dvh;z-index:10;overscroll-behavior:none}
 .screen.active{display:flex;flex-direction:column;align-items:center;justify-content:center}
 #matrix-bg{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;opacity:0.3}
 #splash-screen{z-index:100;background:var(--bg-dark);justify-content:center;align-items:center}
@@ -81,7 +82,7 @@ body{background:radial-gradient(ellipse at 50% 40%,#002a10 0%,#001208 40%,#000a0
 .pause-box h2{color:var(--neon-green);font-size:28px;margin-bottom:20px;text-shadow:0 0 20px var(--neon-green-glow)}
 .pause-box .btn{margin:6px 0;width:100%}
 .game-canvas-wrap{flex:1;width:100%;display:flex;justify-content:center;align-items:center;overflow:hidden;position:relative}
-#gameCanvas{background:#000a04;display:block;width:100%;height:100%}
+#gameCanvas{background:#000a04;display:block;width:100%;height:100%;touch-action:none}
 .mobile-controls{width:100%;padding:10px 10px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));background:rgba(0,10,5,0.95);border-top:1px solid var(--neon-green-dim);display:flex;justify-content:space-between;align-items:center;gap:8px;z-index:5}
 .ctrl-btn{padding:18px 28px;border:1px solid var(--neon-green-dim);color:var(--neon-green);font-family:inherit;font-size:18px;background:rgba(0,20,10,0.8);cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;min-width:80px;min-height:56px;text-align:center}
 .ctrl-btn:active{background:rgba(0,255,65,0.15);box-shadow:var(--border-glow)}
@@ -1358,28 +1359,27 @@ function render(){
   const pose=GS.dashActive?'run':(GS.moveLeft||GS.moveRight?'run':'stand');
   if(GS.isAlive){
     const pScale=GS.enlarge?1.8:1;
-    const pYoff=GS.enlarge?GS.playerHeight*(pScale-1):0;
+    const drawY=groundY-14*pScale; // Position so feet touch ground line
     const myColor=getPlayerColor(GS.playerIndex);
     if(GS.dashActive){// Afterimage
-      drawStickFigure(ctx,pxAbs-10,groundY-GS.playerHeight-pYoff,myColor,pose,pScale,0.3);
-      drawStickFigure(ctx,pxAbs-5,groundY-GS.playerHeight-pYoff,myColor,pose,pScale,0.5);
+      drawStickFigure(ctx,pxAbs-10,drawY,myColor,pose,pScale,0.3);
+      drawStickFigure(ctx,pxAbs-5,drawY,myColor,pose,pScale,0.5);
     }
-    drawStickFigure(ctx,pxAbs,groundY-GS.playerHeight-pYoff,myColor,pose,pScale,1);
+    drawStickFigure(ctx,pxAbs,drawY,myColor,pose,pScale,1);
     // Shield visual
     if(GS.shield){ctx.strokeStyle='rgba(68,136,255,0.5)';ctx.lineWidth=2;
-      ctx.beginPath();ctx.arc(pxAbs,groundY-GS.playerHeight*pScale/2,25*pScale,0,Math.PI*2);ctx.stroke();}
+      ctx.beginPath();ctx.arc(pxAbs,drawY-10*pScale,25*pScale,0,Math.PI*2);ctx.stroke();}
     // Shrink visual
     if(GS.shrink){ctx.strokeStyle='rgba(136,170,255,0.4)';ctx.setLineDash([3,3]);
-      ctx.strokeRect(pxAbs-GS.playerWidth*0.25,groundY-GS.playerHeight*0.75,GS.playerWidth*0.5,GS.playerHeight*0.5);ctx.setLineDash([]);}
+      const sh=44*pScale;ctx.strokeRect(pxAbs-12*pScale,drawY-30*pScale,24*pScale,sh);ctx.setLineDash([]);}
     // Enlarge visual - warning glow
     if(GS.enlarge){ctx.strokeStyle='rgba(255,102,0,0.5)';ctx.lineWidth=2;ctx.setLineDash([4,4]);
-      const ew=GS.playerWidth*1.8,eh=GS.playerHeight*1.8;
-      ctx.strokeRect(pxAbs-ew/2,groundY-eh,ew,eh);ctx.setLineDash([]);}
+      const eh=44*pScale;ctx.strokeRect(pxAbs-12*pScale,drawY-30*pScale,24*pScale,eh);ctx.setLineDash([]);}
   }
   // CPU players
   GS.cpuPlayers.forEach(cpu=>{
     if(!cpu.alive)return;
-    drawStickFigure(ctx,cpu.x,groundY-40,cpu.color,'run',0.9,0.9);
+    drawStickFigure(ctx,cpu.x,groundY-14*0.9,cpu.color,'run',0.9,0.9);
   });
   // Multi other players
   if(GS.isMulti){
@@ -1387,7 +1387,7 @@ function render(){
       if(parseInt(idx)===GS.playerIndex)return;
       if(!p||!p.alive)return;
       const px=p.x/100*W;
-      drawStickFigure(ctx,px,groundY-40,getPlayerColor(idx),'run',0.9,0.8);
+      drawStickFigure(ctx,px,groundY-14*0.9,getPlayerColor(idx),'run',0.9,0.8);
     });
   }
   // Particles
@@ -1464,7 +1464,7 @@ function endGame(hit,cleared){
   GS.lastCpuSetup=[...cpuSetup];
   if(hit){
     SoundMgr.playSE('hit');
-    spawnParticles(GS.playerX/100*W+GS.playerWidth/2,groundY-GS.playerHeight/2,'#ff3366',20,10);
+    spawnParticles(GS.playerX/100*W+GS.playerWidth/2,groundY-22,'#ff3366',20,10);
     GS.weatherShakeFrames=5;render();
   }
   if(GS.isMulti){
@@ -1993,7 +1993,7 @@ let multiResultTimer=null;
 let multiResultReadyRef=null;
 function startMultiResultCountdown(){
   if(!GS.isMulti||!GS.roomId)return;
-  const COUNTDOWN_SEC=30;
+  const COUNTDOWN_SEC=20;
   const roomRef=database.ref('rooms/'+GS.roomId);
   // Clear any previous ready state
   roomRef.child('readyPlayers').remove();
@@ -2188,6 +2188,20 @@ function setupInputs(){
     cL.addEventListener('touchend',e=>{e.preventDefault();GS.moveLeft=false;});}
   if(cR){cR.addEventListener('touchstart',e=>{e.preventDefault();GS.moveRight=true;if(Date.now()-rtap<300)Dash.execute(1);rtap=Date.now();});
     cR.addEventListener('touchend',e=>{e.preventDefault();GS.moveRight=false;});}
+  // Prevent all page scroll/zoom/pan gestures
+  document.addEventListener('touchmove',e=>{
+    if(e.touches.length>1)e.preventDefault(); // Block pinch zoom / 2-finger scroll
+  },{passive:false});
+  document.addEventListener('gesturestart',e=>e.preventDefault());
+  document.addEventListener('gesturechange',e=>e.preventDefault());
+  document.addEventListener('gestureend',e=>e.preventDefault());
+  // Prevent mouse wheel scroll on page
+  document.addEventListener('wheel',e=>{
+    const t=e.target;
+    if(!t.closest('.modal')&&!t.closest('#title-screen')&&!t.closest('#ranking-list'))e.preventDefault();
+  },{passive:false});
+  // Lock scroll position
+  window.addEventListener('scroll',()=>{window.scrollTo(0,0);});
 }
 
 // ===== UI Setup =====
