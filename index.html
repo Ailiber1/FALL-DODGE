@@ -1975,6 +1975,11 @@ function joinRoom(){
       hideModal('multi-modal');showScreen('lobby');setupLobby(roomId);
     } else {
       const players=room.players||{};const count=Object.keys(players).length;
+      // Room exists but no players → stale room, delete and recreate
+      if(count===0){
+        roomRef.remove().then(()=>{joinRoom();});
+        return;
+      }
       if(count>=4){
         showToast(currentLang==='ja'?'⚠ ルーム「'+roomId+'」は満員です（4/4人）。\n別のルームIDで作成してください。':'⚠ Room "'+roomId+'" is full (4/4).\nPlease create a different Room ID.',4000);
         SoundMgr.playSE('error');
@@ -2273,15 +2278,24 @@ function cleanupCountdown(){
 function cleanupRoom(roomId,playerIndex){
   if(!roomId)return;
   const rRef=database.ref('rooms/'+roomId);
+  // Cancel onDisconnect so it doesn't interfere
+  rRef.child('players/'+playerIndex).onDisconnect().cancel();
+  // Remove player, readyPlayer, then check if room is empty
+  rRef.child('readyPlayers/'+playerIndex).remove();
   rRef.child('players/'+playerIndex).remove().then(()=>{
+    return rRef.child('players').once('value');
+  }).then(snap=>{
+    const remaining=snap.val();
+    if(!remaining||Object.keys(remaining).length===0){
+      rRef.remove();
+    }
+  }).catch(()=>{
+    // Fallback: try to remove room entirely if error
     rRef.child('players').once('value',snap=>{
       const remaining=snap.val();
-      if(!remaining||Object.keys(remaining).length===0){
-        rRef.remove();
-      }
+      if(!remaining||Object.keys(remaining).length===0)rRef.remove();
     });
   });
-  rRef.child('readyPlayers/'+playerIndex).remove();
 }
 function multiBackToTitle(){
   cleanupCountdown();
