@@ -28,7 +28,7 @@ body{background:radial-gradient(ellipse at 50% 40%,#002a10 0%,#001208 40%,#000a0
 .panel label{color:var(--neon-green);font-size:12px;letter-spacing:2px;display:block;margin-bottom:6px}
 .panel input[type="text"]{width:100%;padding:10px;background:rgba(0,20,10,0.9);border:1px solid var(--neon-green-dim);color:var(--text-primary);font-family:inherit;font-size:14px;outline:none}
 .panel input[type="text"]:focus{border-color:var(--neon-green);box-shadow:var(--border-glow)}
-.btn{display:block;width:100%;padding:12px;margin:6px 0;background:transparent;border:1px solid var(--neon-green-dim);color:var(--neon-green);font-family:inherit;font-size:14px;cursor:pointer;text-align:center;transition:all 0.2s;letter-spacing:1px}
+.btn{display:block;width:100%;padding:13px;margin:6px 0;background:transparent;border:1px solid var(--neon-green-dim);color:var(--neon-green);font-family:inherit;font-size:15px;cursor:pointer;text-align:center;transition:all 0.2s;letter-spacing:1px}
 .btn:hover{border-color:var(--neon-green);box-shadow:var(--border-glow);transform:translateY(-2px);text-shadow:0 0 10px var(--neon-green-glow)}
 .btn:active{transform:translateY(0)}
 .btn-sub{border-color:#003a00;color:var(--text-dim)}
@@ -44,13 +44,20 @@ body{background:radial-gradient(ellipse at 50% 40%,#002a10 0%,#001208 40%,#000a0
 .footer-btn.off{opacity:0.4;color:var(--neon-red)}
 .modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:50;justify-content:center;align-items:center}
 .modal-overlay.active{display:flex}
-.modal{background:var(--bg-panel);border:1px solid var(--neon-green-dim);box-shadow:var(--border-glow);padding:24px;width:90%;max-width:500px;max-height:85vh;overflow-y:auto;position:relative}
+.modal{background:var(--bg-panel);border:1px solid var(--neon-green-dim);box-shadow:var(--border-glow);padding:28px 32px;width:92%;max-width:520px;max-height:85vh;overflow-y:auto;position:relative}
 .modal::before,.modal::after{content:'';position:absolute;width:12px;height:12px;border-color:var(--neon-green);border-style:solid}
 .modal::before{top:-1px;left:-1px;border-width:2px 0 0 2px}
 .modal::after{bottom:-1px;right:-1px;border-width:0 2px 2px 0}
-.modal h2{color:var(--neon-green);font-size:18px;margin-bottom:16px;letter-spacing:3px}
-.modal .close-btn{position:absolute;top:10px;right:14px;color:var(--text-dim);cursor:pointer;font-size:20px;z-index:5}
+.modal h2{color:var(--neon-green);font-size:20px;margin-bottom:18px;letter-spacing:4px}
+.modal .close-btn{position:absolute;top:12px;right:16px;color:var(--text-dim);cursor:pointer;font-size:22px;z-index:5}
 .modal .close-btn:hover{color:var(--neon-green)}
+.room-id-box{border:1px solid var(--neon-gold);background:rgba(40,30,0,0.5);padding:18px 20px;margin:10px 0 14px;box-shadow:0 0 12px rgba(255,204,0,0.15),inset 0 0 12px rgba(255,204,0,0.05);position:relative}
+.room-id-box::before{content:'';position:absolute;top:-1px;left:-1px;width:10px;height:10px;border-top:2px solid var(--neon-gold);border-left:2px solid var(--neon-gold)}
+.room-id-box::after{content:'';position:absolute;bottom:-1px;right:-1px;width:10px;height:10px;border-bottom:2px solid var(--neon-gold);border-right:2px solid var(--neon-gold)}
+.room-id-box .room-id-label{display:flex;align-items:center;gap:8px;color:var(--neon-gold);font-size:14px;letter-spacing:3px;margin-bottom:10px;text-shadow:0 0 8px rgba(255,204,0,0.5)}
+.room-id-box input[type="text"]{width:100%;padding:12px 14px;background:rgba(20,15,0,0.8);border:1px solid rgba(255,204,0,0.4);color:var(--neon-gold);font-family:inherit;font-size:18px;letter-spacing:4px;text-transform:uppercase;outline:none;text-align:center}
+.room-id-box input[type="text"]::placeholder{color:rgba(255,204,0,0.3);font-size:14px;letter-spacing:1px;text-transform:none}
+.room-id-box input[type="text"]:focus{border-color:var(--neon-gold);box-shadow:0 0 10px rgba(255,204,0,0.3),inset 0 0 10px rgba(255,204,0,0.08)}
 #game-screen{padding:0;justify-content:flex-start}
 .game-hud{width:100%;background:rgba(0,10,5,0.95);border-bottom:2px solid rgba(0,255,65,0.3);z-index:5;padding:0}
 .hud-row1{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;gap:8px;flex-wrap:wrap}
@@ -244,13 +251,14 @@ body{background:radial-gradient(ellipse at 50% 40%,#002a10 0%,#001208 40%,#000a0
 <!-- Multi Modal -->
 <div class="modal-overlay" id="multi-modal">
 <div class="modal"><span class="close-btn" data-close="multi-modal">✕</span>
-<h2>MULTIPLAYER</h2>
-<label>ROOM ID</label>
-<input type="text" id="room-input" placeholder="ルームIDを入力..." maxlength="6">
-<p style="font-size:11px;color:var(--text-dim);margin:8px 0" data-i18n="multi_room_hint">同じルームIDを入力したプレイヤー同士がマッチングします<br>空欄で新規ルームを作成します</p>
-<div class="spacer"></div>
-<button class="btn" id="btn-join-room" data-i18n="btn_join_room">ルームに参加</button>
-<button class="btn btn-sub" id="btn-cancel-multi" data-close="multi-modal">キャンセル</button>
+<h2>🎮 MULTIPLAYER</h2>
+<div class="room-id-box">
+<div class="room-id-label">🔑 <span>ROOM ID</span></div>
+<input type="text" id="room-input" placeholder="ルームIDを入力..." maxlength="6" autocomplete="off" spellcheck="false">
+<p style="font-size:12px;color:rgba(255,204,0,0.5);margin:10px 0 0;line-height:1.6" data-i18n="multi_room_hint">同じルームIDを入力したプレイヤー同士がマッチングします<br>空欄で新規ルームを作成します</p>
+</div>
+<button class="btn" id="btn-join-room" style="font-size:16px;padding:14px;margin-top:8px;background:rgba(0,255,65,0.06)" data-i18n="btn_join_room">▶ ルームに参加</button>
+<button class="btn btn-sub" id="btn-cancel-multi" data-close="multi-modal" style="margin-top:4px">キャンセル</button>
 </div></div>
 
 <!-- Lobby -->
