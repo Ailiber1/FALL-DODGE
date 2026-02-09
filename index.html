@@ -1458,21 +1458,27 @@ function render(){
     } else {
       drawStickFigure(ctx,pxAbs,drawY,myColor,pose,pScale,1);
     }
-    // Shield visual - bubble dome covering character
+    // Shield visual - bubble dome covering entire character
     if(GS.shield){
       ctx.save();
-      const shieldR=28*pScale;const shieldCY=drawY-10*pScale;
+      const shieldR=38*pScale;const shieldCY=drawY-6*pScale;
       const shieldPulse=0.8+0.2*Math.sin(Date.now()/300);
-      const shieldGrad=ctx.createRadialGradient(pxAbs,shieldCY,shieldR*0.3,pxAbs,shieldCY,shieldR);
-      shieldGrad.addColorStop(0,'rgba(68,136,255,0.05)');
-      shieldGrad.addColorStop(0.7,'rgba(68,180,255,'+0.12*shieldPulse+')');
-      shieldGrad.addColorStop(1,'rgba(100,200,255,'+0.25*shieldPulse+')');
+      // Filled dome
+      const shieldGrad=ctx.createRadialGradient(pxAbs,shieldCY,shieldR*0.2,pxAbs,shieldCY,shieldR);
+      shieldGrad.addColorStop(0,'rgba(68,136,255,0.03)');
+      shieldGrad.addColorStop(0.5,'rgba(68,180,255,'+0.1*shieldPulse+')');
+      shieldGrad.addColorStop(0.85,'rgba(100,200,255,'+0.2*shieldPulse+')');
+      shieldGrad.addColorStop(1,'rgba(140,220,255,'+0.35*shieldPulse+')');
       ctx.fillStyle=shieldGrad;ctx.beginPath();ctx.arc(pxAbs,shieldCY,shieldR,0,Math.PI*2);ctx.fill();
-      ctx.strokeStyle='rgba(100,200,255,'+0.6*shieldPulse+')';ctx.lineWidth=2;
+      // Outer ring
+      ctx.strokeStyle='rgba(100,200,255,'+0.7*shieldPulse+')';ctx.lineWidth=2.5;
       ctx.beginPath();ctx.arc(pxAbs,shieldCY,shieldR,0,Math.PI*2);ctx.stroke();
-      // Shield highlight
-      ctx.strokeStyle='rgba(200,230,255,'+0.3*shieldPulse+')';ctx.lineWidth=1;
-      ctx.beginPath();ctx.arc(pxAbs-6*pScale,shieldCY-8*pScale,shieldR*0.5,-0.8,-2.2,true);ctx.stroke();
+      // Inner glow ring
+      ctx.strokeStyle='rgba(150,220,255,'+0.3*shieldPulse+')';ctx.lineWidth=1;
+      ctx.beginPath();ctx.arc(pxAbs,shieldCY,shieldR*0.85,0,Math.PI*2);ctx.stroke();
+      // Highlight arc (top-left)
+      ctx.strokeStyle='rgba(220,240,255,'+0.4*shieldPulse+')';ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(pxAbs-6*pScale,shieldCY-8*pScale,shieldR*0.55,-0.6,-2.4,true);ctx.stroke();
       ctx.restore();
     }
     // Invincible visual - rainbow glow aura
