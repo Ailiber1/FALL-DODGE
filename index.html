@@ -1359,28 +1359,27 @@ function render(){
   const pose=GS.dashActive?'run':(GS.moveLeft||GS.moveRight?'run':'stand');
   if(GS.isAlive){
     const pScale=GS.enlarge?1.8:1;
-    const pYoff=GS.enlarge?GS.playerHeight*(pScale-1):0;
+    const drawY=groundY-14*pScale; // Position so feet touch ground line
     const myColor=getPlayerColor(GS.playerIndex);
     if(GS.dashActive){// Afterimage
-      drawStickFigure(ctx,pxAbs-10,groundY-GS.playerHeight-pYoff,myColor,pose,pScale,0.3);
-      drawStickFigure(ctx,pxAbs-5,groundY-GS.playerHeight-pYoff,myColor,pose,pScale,0.5);
+      drawStickFigure(ctx,pxAbs-10,drawY,myColor,pose,pScale,0.3);
+      drawStickFigure(ctx,pxAbs-5,drawY,myColor,pose,pScale,0.5);
     }
-    drawStickFigure(ctx,pxAbs,groundY-GS.playerHeight-pYoff,myColor,pose,pScale,1);
+    drawStickFigure(ctx,pxAbs,drawY,myColor,pose,pScale,1);
     // Shield visual
     if(GS.shield){ctx.strokeStyle='rgba(68,136,255,0.5)';ctx.lineWidth=2;
-      ctx.beginPath();ctx.arc(pxAbs,groundY-GS.playerHeight*pScale/2,25*pScale,0,Math.PI*2);ctx.stroke();}
+      ctx.beginPath();ctx.arc(pxAbs,drawY-10*pScale,25*pScale,0,Math.PI*2);ctx.stroke();}
     // Shrink visual
     if(GS.shrink){ctx.strokeStyle='rgba(136,170,255,0.4)';ctx.setLineDash([3,3]);
-      ctx.strokeRect(pxAbs-GS.playerWidth*0.25,groundY-GS.playerHeight*0.75,GS.playerWidth*0.5,GS.playerHeight*0.5);ctx.setLineDash([]);}
+      const sh=44*pScale;ctx.strokeRect(pxAbs-12*pScale,drawY-30*pScale,24*pScale,sh);ctx.setLineDash([]);}
     // Enlarge visual - warning glow
     if(GS.enlarge){ctx.strokeStyle='rgba(255,102,0,0.5)';ctx.lineWidth=2;ctx.setLineDash([4,4]);
-      const ew=GS.playerWidth*1.8,eh=GS.playerHeight*1.8;
-      ctx.strokeRect(pxAbs-ew/2,groundY-eh,ew,eh);ctx.setLineDash([]);}
+      const eh=44*pScale;ctx.strokeRect(pxAbs-12*pScale,drawY-30*pScale,24*pScale,eh);ctx.setLineDash([]);}
   }
   // CPU players
   GS.cpuPlayers.forEach(cpu=>{
     if(!cpu.alive)return;
-    drawStickFigure(ctx,cpu.x,groundY-40,cpu.color,'run',0.9,0.9);
+    drawStickFigure(ctx,cpu.x,groundY-14*0.9,cpu.color,'run',0.9,0.9);
   });
   // Multi other players
   if(GS.isMulti){
@@ -1388,7 +1387,7 @@ function render(){
       if(parseInt(idx)===GS.playerIndex)return;
       if(!p||!p.alive)return;
       const px=p.x/100*W;
-      drawStickFigure(ctx,px,groundY-40,getPlayerColor(idx),'run',0.9,0.8);
+      drawStickFigure(ctx,px,groundY-14*0.9,getPlayerColor(idx),'run',0.9,0.8);
     });
   }
   // Particles
@@ -1465,7 +1464,7 @@ function endGame(hit,cleared){
   GS.lastCpuSetup=[...cpuSetup];
   if(hit){
     SoundMgr.playSE('hit');
-    spawnParticles(GS.playerX/100*W+GS.playerWidth/2,groundY-GS.playerHeight/2,'#ff3366',20,10);
+    spawnParticles(GS.playerX/100*W+GS.playerWidth/2,groundY-22,'#ff3366',20,10);
     GS.weatherShakeFrames=5;render();
   }
   if(GS.isMulti){
@@ -1994,7 +1993,7 @@ let multiResultTimer=null;
 let multiResultReadyRef=null;
 function startMultiResultCountdown(){
   if(!GS.isMulti||!GS.roomId)return;
-  const COUNTDOWN_SEC=30;
+  const COUNTDOWN_SEC=20;
   const roomRef=database.ref('rooms/'+GS.roomId);
   // Clear any previous ready state
   roomRef.child('readyPlayers').remove();
