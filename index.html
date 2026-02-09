@@ -479,7 +479,7 @@ const POWERUP_TYPES = {
   shield:{icon:'🛡️',dur:-1,color:'#4488ff',rate:0.08},
   speed:{icon:'⚡',dur:5000,color:'#ffcc00',rate:0.10},
   slow:{icon:'🔽',dur:3000,color:'#00ff88',rate:0.07},
-  invincible:{icon:'🌟',dur:5000,color:'#ff00ff',rate:0.08,rainbow:true},
+  invincible:{icon:'🌟',dur:5000,color:'#ff00ff',rate:0.03,rainbow:true},
   enlarge:{icon:'🔺',dur:6000,color:'#ff6600',rate:0.06},
   sabotage:{icon:'💀',dur:0,color:'#ff3333',rate:0.05,multiOnly:true}
 };
@@ -1458,26 +1458,26 @@ function render(){
     } else {
       drawStickFigure(ctx,pxAbs,drawY,myColor,pose,pScale,1);
     }
-    // Shield visual - bubble dome covering entire character
+    // Shield visual - bright bubble dome covering entire character
     if(GS.shield){
       ctx.save();
-      const shieldR=38*pScale;const shieldCY=drawY-6*pScale;
+      const shieldR=40*pScale;const shieldCY=drawY-6*pScale;
       const shieldPulse=0.8+0.2*Math.sin(Date.now()/300);
-      // Filled dome
-      const shieldGrad=ctx.createRadialGradient(pxAbs,shieldCY,shieldR*0.2,pxAbs,shieldCY,shieldR);
-      shieldGrad.addColorStop(0,'rgba(68,136,255,0.03)');
-      shieldGrad.addColorStop(0.5,'rgba(68,180,255,'+0.1*shieldPulse+')');
-      shieldGrad.addColorStop(0.85,'rgba(100,200,255,'+0.2*shieldPulse+')');
-      shieldGrad.addColorStop(1,'rgba(140,220,255,'+0.35*shieldPulse+')');
+      // Bright filled dome
+      const shieldGrad=ctx.createRadialGradient(pxAbs,shieldCY,0,pxAbs,shieldCY,shieldR);
+      shieldGrad.addColorStop(0,'rgba(100,180,255,0.12)');
+      shieldGrad.addColorStop(0.5,'rgba(80,160,255,0.25)');
+      shieldGrad.addColorStop(0.8,'rgba(60,140,255,0.4)');
+      shieldGrad.addColorStop(1,'rgba(50,120,255,0.55)');
       ctx.fillStyle=shieldGrad;ctx.beginPath();ctx.arc(pxAbs,shieldCY,shieldR,0,Math.PI*2);ctx.fill();
-      // Outer ring
-      ctx.strokeStyle='rgba(100,200,255,'+0.7*shieldPulse+')';ctx.lineWidth=2.5;
+      // Thick outer ring
+      ctx.strokeStyle='rgba(100,200,255,'+0.9*shieldPulse+')';ctx.lineWidth=3.5;
       ctx.beginPath();ctx.arc(pxAbs,shieldCY,shieldR,0,Math.PI*2);ctx.stroke();
-      // Inner glow ring
-      ctx.strokeStyle='rgba(150,220,255,'+0.3*shieldPulse+')';ctx.lineWidth=1;
-      ctx.beginPath();ctx.arc(pxAbs,shieldCY,shieldR*0.85,0,Math.PI*2);ctx.stroke();
-      // Highlight arc (top-left)
-      ctx.strokeStyle='rgba(220,240,255,'+0.4*shieldPulse+')';ctx.lineWidth=2;
+      // Second inner ring
+      ctx.strokeStyle='rgba(150,220,255,'+0.5*shieldPulse+')';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.arc(pxAbs,shieldCY,shieldR*0.82,0,Math.PI*2);ctx.stroke();
+      // Highlight arc (top-left shine)
+      ctx.strokeStyle='rgba(220,240,255,'+0.7*shieldPulse+')';ctx.lineWidth=3;
       ctx.beginPath();ctx.arc(pxAbs-6*pScale,shieldCY-8*pScale,shieldR*0.55,-0.6,-2.4,true);ctx.stroke();
       ctx.restore();
     }
