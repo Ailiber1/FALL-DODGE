@@ -113,7 +113,8 @@ body{background:radial-gradient(ellipse at 50% 40%,#002a10 0%,#001208 40%,#000a0
 .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,20,10,0.95);border:1px solid var(--neon-green);color:var(--neon-green);padding:10px 24px;font-size:13px;z-index:100;animation:float-in 0.3s ease-out}
 .error-text{color:var(--neon-red);font-size:12px;margin-top:4px;display:none}
 @media(max-width:600px){.panel{padding:15px;width:95%}.btn{padding:10px;font-size:13px}.ctrl-btn{padding:16px 20px;font-size:18px}}
-@media(min-width:601px){.mobile-controls{display:none}}
+@media(hover:hover) and (pointer:fine){.mobile-controls{display:none}}
+.footer.game-hidden{display:none}
 </style>
 </head>
 <body>
@@ -1379,6 +1380,9 @@ function showScreen(id){
   const el=document.getElementById(id+'-screen');if(el)el.classList.add('active');GS.currentScreen=id;
   if(id!=='title'&&typeof stopTitleAnim==='function')stopTitleAnim();
   if(id==='title'&&typeof drawTitleChars==='function')drawTitleChars();
+  // Hide footer icons during gameplay to avoid overlap with mobile controls
+  const footer=document.querySelector('.footer');
+  if(footer)footer.classList.toggle('game-hidden',id==='game');
 }
 function showModal(id){document.getElementById(id).classList.add('active');}
 function hideModal(id){document.getElementById(id).classList.remove('active');}
