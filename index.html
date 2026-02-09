@@ -112,7 +112,7 @@ body{background:radial-gradient(ellipse at 50% 40%,#002a10 0%,#001208 40%,#000a0
 .lobby-player .dot{width:10px;height:10px;border-radius:50%}
 .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,20,10,0.95);border:1px solid var(--neon-green);color:var(--neon-green);padding:10px 24px;font-size:13px;z-index:100;animation:float-in 0.3s ease-out}
 .error-text{color:var(--neon-red);font-size:12px;margin-top:4px;display:none}
-@media(max-width:600px){.panel{padding:15px;width:95%}.btn{padding:10px;font-size:13px}.title-logo h1{font-size:clamp(30px,12vw,52px)}.ctrl-btn{padding:16px 20px;font-size:18px}}
+@media(max-width:600px){.panel{padding:15px;width:95%}.btn{padding:10px;font-size:13px}.ctrl-btn{padding:16px 20px;font-size:18px}}
 @media(min-width:601px){.mobile-controls{display:none}}
 </style>
 </head>
@@ -127,8 +127,7 @@ body{background:radial-gradient(ellipse at 50% 40%,#002a10 0%,#001208 40%,#000a0
 <!-- Title -->
 <div id="title-screen" class="screen">
 <div class="title-logo">
-<h1>FALL<br>DODGE</h1>
-<canvas id="titleCharsCanvas" width="200" height="60"></canvas>
+<canvas id="titleCanvas" width="400" height="220" style="width:min(90vw,400px);height:auto"></canvas>
 </div>
 <div class="panel">
 <label>USER NAME</label>
@@ -1379,6 +1378,8 @@ function submitScore(){
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   const el=document.getElementById(id+'-screen');if(el)el.classList.add('active');GS.currentScreen=id;
+  if(id!=='title'&&typeof stopTitleAnim==='function')stopTitleAnim();
+  if(id==='title'&&typeof drawTitleChars==='function')drawTitleChars();
 }
 function showModal(id){document.getElementById(id).classList.add('active');}
 function hideModal(id){document.getElementById(id).classList.remove('active');}
@@ -1815,7 +1816,74 @@ function setupMultiModal(){
   // Multi modal now only contains Room ID input - no mode/difficulty selection
   // Rules are selected in the lobby by the host
 }
-function drawTitleChars(){const tc=document.getElementById('titleCharsCanvas');if(!tc)return;const tctx=tc.getContext('2d');tctx.clearRect(0,0,200,60);PLAYER_COLORS.forEach((pc,i)=>{drawStickFigure(tctx,30+i*45,35,pc.hex,'run',0.7,1);});}
+// ===== Block Font: 5x7 grid per character =====
+const BLOCK_FONT={
+F:[[1,1,1,1,1],[1,0,0,0,0],[1,1,1,1,0],[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0]],
+A:[[0,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,1,1,1,1],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1]],
+L:[[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,1,1,1,1]],
+D:[[1,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,1,1,1,0]],
+O:[[0,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[0,1,1,1,0]],
+G:[[0,1,1,1,0],[1,0,0,0,1],[1,0,0,0,0],[1,0,1,1,1],[1,0,0,0,1],[1,0,0,0,1],[0,1,1,1,0]],
+E:[[1,1,1,1,1],[1,0,0,0,0],[1,0,0,0,0],[1,1,1,1,0],[1,0,0,0,0],[1,0,0,0,0],[1,1,1,1,1]]
+};
+function drawBlockText(cx,text,x,y,blockSize,color,glowColor){
+  cx.save();
+  const gap=2;
+  const charW=5*blockSize+5*gap;
+  const totalW=text.length*charW-gap;
+  let startX=x-totalW/2;
+  for(const ch of text){
+    const grid=BLOCK_FONT[ch];if(!grid){startX+=charW;continue;}
+    for(let r=0;r<7;r++){for(let c=0;c<5;c++){
+      if(!grid[r][c])continue;
+      const bx=startX+c*(blockSize+gap);const by=y+r*(blockSize+gap);
+      // Glow
+      cx.shadowColor=glowColor;cx.shadowBlur=8;
+      // Block with subtle 3D
+      cx.fillStyle=color;cx.fillRect(bx,by,blockSize,blockSize);
+      // Highlight top-left
+      cx.fillStyle='rgba(255,255,255,0.25)';cx.fillRect(bx,by,blockSize,2);cx.fillRect(bx,by,2,blockSize);
+      // Shadow bottom-right
+      cx.fillStyle='rgba(0,0,0,0.3)';cx.fillRect(bx,by+blockSize-2,blockSize,2);cx.fillRect(bx+blockSize-2,by,2,blockSize);
+    }}
+    startX+=charW;
+  }
+  cx.shadowBlur=0;cx.restore();
+}
+let titleAnimId=null;
+function drawTitleChars(){
+  const tc=document.getElementById('titleCanvas');if(!tc)return;
+  const tctx=tc.getContext('2d');
+  const W=tc.width,H=tc.height;
+  // Per-character animation state
+  const chars=[
+    {pIdx:0,baseX:55, dir:1,speed:0.6,range:20,offset:0},
+    {pIdx:1,baseX:145,dir:-1,speed:0.8,range:25,offset:1.2},
+    {pIdx:2,baseX:255,dir:1,speed:0.7,range:18,offset:2.5},
+    {pIdx:3,baseX:345,dir:-1,speed:0.9,range:22,offset:3.8}
+  ];
+  if(titleAnimId)cancelAnimationFrame(titleAnimId);
+  function animate(){
+    titleAnimId=requestAnimationFrame(animate);
+    tctx.clearRect(0,0,W,H);
+    // Draw block title
+    const bs=7;
+    drawBlockText(tctx,'FALL',W/2,12,bs,'#00ff41','rgba(0,255,65,0.7)');
+    drawBlockText(tctx,'DODGE',W/2,82,bs,'#00ff41','rgba(0,255,65,0.7)');
+    // Animated stick figures dodging left and right
+    const now=Date.now()/1000;
+    const figY=185;
+    chars.forEach(ch=>{
+      const wave=Math.sin(now*ch.speed*2+ch.offset)*ch.range;
+      const px=ch.baseX+wave;
+      const moving=Math.abs(Math.cos(now*ch.speed*2+ch.offset))>0.2;
+      const pose=moving?'run':'stand';
+      drawStickFigure(tctx,px,figY,PLAYER_COLORS[ch.pIdx].hex,pose,0.8,1);
+    });
+  }
+  animate();
+}
+function stopTitleAnim(){if(titleAnimId){cancelAnimationFrame(titleAnimId);titleAnimId=null;}}
 
 // ===== Init =====
 function init(){
@@ -1824,7 +1892,7 @@ function init(){
   if(saved){GS.username=saved;GS.isGuest=false;document.getElementById('username-input').value=saved;}
   switchLanguage(currentLang);MatrixBG.init();
   SoundMgr.playSE('match_ready');
-  const goTitle=()=>{showScreen('title');SoundMgr.playBGM('FALL DODGE_OP.mp3');drawTitleChars();
+  const goTitle=()=>{showScreen('title');SoundMgr.playBGM('FALL DODGE_OP.mp3');
     const params=new URLSearchParams(window.location.search);const rm=params.get('room');
     if(rm){document.getElementById('room-input').value=rm;setupMultiModal();showModal('multi-modal');}};
   setTimeout(goTitle,2500);
