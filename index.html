@@ -203,7 +203,7 @@ body{background:radial-gradient(ellipse at 50% 40%,#002a10 0%,#001208 40%,#000a0
 </div>
 <div class="mobile-controls" id="mobile-controls">
 <button class="ctrl-btn" id="ctrl-left">← 左</button>
-<div class="dash-gauge"><div>DIVE</div><div class="gauge-bar"><div class="gauge-fill" id="dash-fill" style="width:100%"></div></div><div id="dash-text"></div></div>
+<div class="dash-gauge"><div>SLIDE</div><div class="gauge-bar"><div class="gauge-fill" id="dash-fill" style="width:100%"></div></div><div id="dash-text"></div></div>
 <button class="ctrl-btn" id="ctrl-right">右 →</button>
 </div>
 </div>
@@ -331,9 +331,9 @@ const database = firebase.database();
 // ===== i18n =====
 const i18n = {
   ja:{catchcopy:'一瞬の判断が、生存を決める',btn_register_play:'登録してゲームを始める',btn_guest_play:'▶ 登録しないでゲームを始める',btn_multi:'マルチプレイ（最大4人）',btn_rules:'ルール説明を見る',btn_ranking:'ランキングを見る',difficulty_easy:'簡単',difficulty_normal:'普通',difficulty_hard:'難しい',game_over:'GAME OVER',game_set:'GAME SET!',winner:'勝者',score_label:'スコア',rematch:'再戦',back_to_title:'タイトルに戻る',retry:'もう一度プレイ',waiting:'待機中...',game_start:'ゲーム開始',disconnected:'さんが退席しました',near_miss:'NEAR MISS!',combo:'COMBO!',fever:'FEVER!',shield_break:'SHIELD BREAK!',stage_label:'ステージ',weather_rain:'雨',weather_thunder:'雷',weather_storm:'嵐',bgm_on:'BGM: ON',bgm_off:'BGM: OFF',se_on:'SE: ON',se_off:'SE: OFF',
-    rule_text:'<b>FALL DODGE ルール</b><br><br>・上空から落下物（日用品・工具）が降ってくる<br>・← → キーで左右移動し、落下物を回避<br>・Shift / Space でダイビングヘッド（横に飛んで回避）<br>・落下物に当たったらゲームオーバー<br>・回避するとスコア+1、ニアミスでボーナス<br>・連続回避でコンボ倍率アップ<br>・★パワーアップアイテムで一時的に強化<br>・時間経過で難易度上昇<br>・ステージごとに背景とBGMが変化<br><br><b>ステージモード</b><br>・ステージ1〜5を順番にクリア<br>・各ステージ制限時間2分（ステージ5は3分）<br>・時間内に生き残ればステージクリア<br><br><b>🏆 スコアアタック</b><br>・時間制限なし！高難易度固定でスコアを競う<br>・やられるまでひたすらスコアを稼ぐ<br>・登録ユーザーのスコアはランキングに反映<br>・上位TOP10のみ表示<br><br><b>パワーアップ</b><br>🛡️ シールド: 落下物を弾く(5秒 or 被弾で消滅)<br>⚡ スピード: 移動速度2倍(5秒)<br>🔽 スロー: 落下速度半減(3秒)<br>🌟 無敵: 落下物が当たっても無敵(5秒)<br>🔺 巨大化: 当たり判定1.8倍(6秒) ※デバフ<br><br><b>一時停止</b><br>・PC: Aキー または Escキー<br>・スマホ: ← → 同時押し<br><br><b>マルチプレイ</b><br>・最大4人同時対戦<br>・最後まで生き残った人が勝利<br>・💀妨害アイテムで他プレイヤーに追加落下物',
+    rule_text:'<b>FALL DODGE ルール</b><br><br>・上空から落下物（日用品・工具）が降ってくる<br>・← → キーで左右移動し、落下物を回避<br>・Shift / Space でヘッドスライディング（横に滑って回避）<br>・落下物に当たったらゲームオーバー<br>・回避するとスコア+1、ニアミスでボーナス<br>・連続回避でコンボ倍率アップ<br>・★パワーアップアイテムで一時的に強化<br>・時間経過で難易度上昇<br>・ステージごとに背景とBGMが変化<br><br><b>ステージモード</b><br>・ステージ1〜5を順番にクリア<br>・各ステージ制限時間2分（ステージ5は3分）<br>・時間内に生き残ればステージクリア<br><br><b>🏆 スコアアタック</b><br>・時間制限なし！高難易度固定でスコアを競う<br>・やられるまでひたすらスコアを稼ぐ<br>・登録ユーザーのスコアはランキングに反映<br>・上位TOP10のみ表示<br><br><b>パワーアップ</b><br>🛡️ シールド: 落下物を弾く(5秒 or 被弾で消滅)<br>⚡ スピード: 移動速度2倍(5秒)<br>🔽 スロー: 落下速度半減(3秒)<br>🌟 無敵: 落下物が当たっても無敵(5秒)<br>🔺 巨大化: 当たり判定1.8倍(6秒) ※デバフ<br><br><b>一時停止</b><br>・PC: Aキー または Escキー<br>・スマホ: ← → 同時押し<br><br><b>マルチプレイ</b><br>・最大4人同時対戦<br>・最後まで生き残った人が勝利<br>・💀妨害アイテムで他プレイヤーに追加落下物',
     c_start:'ゲームスタート！生き延びろ！',c_first:'最初の回避成功！いい滑り出しだ',c_combo2:'コンボ発動！この調子だ',c_combo5:'フィーバー突入！止まらない！',c_combo10:'MAX!! 神回避の領域だ！',c_nearmiss:'危ない！紙一重だった！',c_shield:'シールドGET！保険をかけた',c_shield_break:'シールド消滅！残りは腕だけだ',c_boss:'巨大落下物接近！気をつけろ！',c_boss_dodge:'ナイス！巨大物を回避した！',c_stage:'ステージ{n}突入！',c_score100:'100回避達成！まだまだ行ける！',c_1min:'1分経過！タフな生存者だ',c_2min:'2分経過！もはや伝説級だ',c_pout:'P{n}が脱落！残り{r}人の戦い！',c_final:'一騎打ち！最後の勝負だ！',c_storm:'嵐が来た！落下物が斜めに飛ぶぞ',
-    c_edge_left:'壁際は危険だ！中央に戻れ！',c_edge_right:'端に寄りすぎだ！逃げ場がなくなるぞ！',c_center:'中央キープ！いいポジションだ',c_dense:'落下物の嵐だ！集中しろ！',c_calm:'静かだ…次の波に備えろ',c_dash_master:'ダイビングヘッドが上手い！',c_no_move:'止まっていて大丈夫か？動け！',c_survive_dense:'大量の落下物を捌いた！見事だ！',c_lucky:'ギリギリの回避が続く…強運の持ち主だ',c_speedup:'落下速度が上がってきた！気をつけろ',c_multi_dodge:'連続ニアミス！冷や汗ものだ！',c_power_rush:'パワーアップで無双状態だ！',c_rain_comment:'雨が降ってきた…視界に注意',c_long_combo:'コンボが途切れない！集中力が凄い',c_close_call:'今のは本当に危なかった！',c_wall_hug:'壁に張り付くな！挟まれるぞ！',c_smooth:'華麗な立ち回りだ！',c_dodge_rain:'雨の中での回避…難易度アップだ',c_comeback:'持ち直した！まだまだいける！',c_enlarge:'巨大化した！当たり判定が広がるぞ…！',c_invincible:'無敵モード発動！何も怖くない！',
+    c_edge_left:'壁際は危険だ！中央に戻れ！',c_edge_right:'端に寄りすぎだ！逃げ場がなくなるぞ！',c_center:'中央キープ！いいポジションだ',c_dense:'落下物の嵐だ！集中しろ！',c_calm:'静かだ…次の波に備えろ',c_dash_master:'ナイススライディング！',c_no_move:'止まっていて大丈夫か？動け！',c_survive_dense:'大量の落下物を捌いた！見事だ！',c_lucky:'ギリギリの回避が続く…強運の持ち主だ',c_speedup:'落下速度が上がってきた！気をつけろ',c_multi_dodge:'連続ニアミス！冷や汗ものだ！',c_power_rush:'パワーアップで無双状態だ！',c_rain_comment:'雨が降ってきた…視界に注意',c_long_combo:'コンボが途切れない！集中力が凄い',c_close_call:'今のは本当に危なかった！',c_wall_hug:'壁に張り付くな！挟まれるぞ！',c_smooth:'華麗な立ち回りだ！',c_dodge_rain:'雨の中での回避…難易度アップだ',c_comeback:'持ち直した！まだまだいける！',c_enlarge:'巨大化した！当たり判定が広がるぞ…！',c_invincible:'無敵モード発動！何も怖くない！',
     mode_normal:'ノーマル',mode_survival:'サバイバル',mode_timeAttack:'タイムアタック',mode_bossRush:'ボスラッシュ',mode_reverse:'リバース',mode_coop:'協力モード',
     multi_individual:'個人戦',multi_team:'チーム戦',multi_coop:'協力',
     multi_room_hint:'同じルームIDを入力したプレイヤー同士がマッチングします<br>最初に入力した人がルームを作成します',
@@ -346,9 +346,9 @@ const i18n = {
     secret_popup_title:'SECRET UNLOCKED'
   },
   en:{catchcopy:'A split-second decision determines survival.',btn_register_play:'Register & Play',btn_guest_play:'▶ Play as Guest',btn_multi:'Multiplayer (up to 4)',btn_rules:'How to Play',btn_ranking:'Rankings',difficulty_easy:'Easy',difficulty_normal:'Normal',difficulty_hard:'Hard',game_over:'GAME OVER',game_set:'GAME SET!',winner:'WINNER',score_label:'SCORE',rematch:'Rematch',back_to_title:'Back to Title',retry:'Play Again',waiting:'Waiting...',game_start:'Start Game',disconnected:' disconnected',near_miss:'NEAR MISS!',combo:'COMBO!',fever:'FEVER!',shield_break:'SHIELD BREAK!',stage_label:'STAGE',weather_rain:'Rain',weather_thunder:'Thunder',weather_storm:'Storm',bgm_on:'BGM: ON',bgm_off:'BGM: OFF',se_on:'SE: ON',se_off:'SE: OFF',
-    rule_text:'<b>FALL DODGE Rules</b><br><br>• Objects fall from above<br>• Use ← → to move and dodge<br>• Shift/Space to Diving Head (dive sideways to dodge)<br>• Hit = Game Over<br>• Dodge = Score+1, Near Miss = Bonus<br>• Consecutive dodges increase combo multiplier<br>• ★ Power-ups give temporary boosts<br>• Difficulty increases over time<br>• Background & BGM change per stage<br><br><b>Stage Mode</b><br>• Clear Stages 1-5 in order<br>• 2 min per stage (Stage 5 is 3 min)<br>• Survive the time to advance<br><br><b>🏆 Score Attack</b><br>• No time limit! Fixed high difficulty<br>• Keep dodging to rack up your score<br>• Registered users scores appear in rankings<br>• Only top 10 scores displayed<br><br><b>Power-ups</b><br>🛡️ Shield: Deflects objects (5s or breaks on hit)<br>⚡ Speed: 2x speed (5s)<br>🔽 Slow: Half fall speed (3s)<br>🌟 Invincible: Immune to all hits (5s)<br>🔺 Enlarge: 1.8x hitbox (6s) *Debuff*<br><br><b>Pause</b><br>• PC: A key or Esc key<br>• Mobile: Press ← → at the same time<br><br><b>Multiplayer</b><br>• Up to 4 players online<br>• Last one standing wins<br>• 💀 Sabotage adds objects to others',
+    rule_text:'<b>FALL DODGE Rules</b><br><br>• Objects fall from above<br>• Use ← → to move and dodge<br>• Shift/Space to Head Slide (slide sideways to dodge)<br>• Hit = Game Over<br>• Dodge = Score+1, Near Miss = Bonus<br>• Consecutive dodges increase combo multiplier<br>• ★ Power-ups give temporary boosts<br>• Difficulty increases over time<br>• Background & BGM change per stage<br><br><b>Stage Mode</b><br>• Clear Stages 1-5 in order<br>• 2 min per stage (Stage 5 is 3 min)<br>• Survive the time to advance<br><br><b>🏆 Score Attack</b><br>• No time limit! Fixed high difficulty<br>• Keep dodging to rack up your score<br>• Registered users scores appear in rankings<br>• Only top 10 scores displayed<br><br><b>Power-ups</b><br>🛡️ Shield: Deflects objects (5s or breaks on hit)<br>⚡ Speed: 2x speed (5s)<br>🔽 Slow: Half fall speed (3s)<br>🌟 Invincible: Immune to all hits (5s)<br>🔺 Enlarge: 1.8x hitbox (6s) *Debuff*<br><br><b>Pause</b><br>• PC: A key or Esc key<br>• Mobile: Press ← → at the same time<br><br><b>Multiplayer</b><br>• Up to 4 players online<br>• Last one standing wins<br>• 💀 Sabotage adds objects to others',
     c_start:'Game start! Survive!',c_first:'First dodge! Good start!',c_combo2:'Combo activated! Keep it up!',c_combo5:'FEVER mode! Unstoppable!',c_combo10:'MAX!! Godlike dodging!',c_nearmiss:'Close call! That was tight!',c_shield:'Shield acquired! Safety net!',c_shield_break:'Shield gone! Skill only now!',c_boss:'BOSS incoming! Watch out!',c_boss_dodge:'Nice! Boss dodged!',c_stage:'Stage {n}!',c_score100:'100 dodges! Still going!',c_1min:'1 minute survived! Tough!',c_2min:'2 minutes! Legendary!',c_pout:'P{n} is out! {r} remain!',c_final:'1v1! Final showdown!',c_storm:'Storm! Objects flying sideways!',
-    c_edge_left:'Too close to the wall! Move to center!',c_edge_right:'Hugging the edge! You\'ll get trapped!',c_center:'Holding center! Good position!',c_dense:'Object storm incoming! Focus!',c_calm:'It\'s quiet... brace for the next wave',c_dash_master:'Great diving head!',c_no_move:'Standing still? Move it!',c_survive_dense:'Survived that barrage! Impressive!',c_lucky:'Lucky dodges keep coming!',c_speedup:'Fall speed increasing! Stay sharp!',c_multi_dodge:'Multiple near misses! Heart-pounding!',c_power_rush:'Powered up and dominating!',c_rain_comment:'Rain is falling... watch your vision',c_long_combo:'Combo unbroken! Insane focus!',c_close_call:'That was WAY too close!',c_wall_hug:'Stop hugging the wall! You\'ll get cornered!',c_smooth:'Smooth moves! Beautiful dodging!',c_dodge_rain:'Dodging in the rain... extra challenge!',c_comeback:'Back on track! Keep going!',c_enlarge:'Enlarged! Bigger hitbox... be careful!',c_invincible:'Invincible mode! Nothing can stop you!',
+    c_edge_left:'Too close to the wall! Move to center!',c_edge_right:'Hugging the edge! You\'ll get trapped!',c_center:'Holding center! Good position!',c_dense:'Object storm incoming! Focus!',c_calm:'It\'s quiet... brace for the next wave',c_dash_master:'Nice head slide!',c_no_move:'Standing still? Move it!',c_survive_dense:'Survived that barrage! Impressive!',c_lucky:'Lucky dodges keep coming!',c_speedup:'Fall speed increasing! Stay sharp!',c_multi_dodge:'Multiple near misses! Heart-pounding!',c_power_rush:'Powered up and dominating!',c_rain_comment:'Rain is falling... watch your vision',c_long_combo:'Combo unbroken! Insane focus!',c_close_call:'That was WAY too close!',c_wall_hug:'Stop hugging the wall! You\'ll get cornered!',c_smooth:'Smooth moves! Beautiful dodging!',c_dodge_rain:'Dodging in the rain... extra challenge!',c_comeback:'Back on track! Keep going!',c_enlarge:'Enlarged! Bigger hitbox... be careful!',c_invincible:'Invincible mode! Nothing can stop you!',
     mode_normal:'Normal',mode_survival:'Survival',mode_timeAttack:'Time Attack',mode_bossRush:'Boss Rush',mode_reverse:'Reverse',mode_coop:'Co-op',
     multi_individual:'Individual',multi_team:'Team',multi_coop:'Co-op',
     multi_room_hint:'Players with the same Room ID are matched together<br>The first player to enter creates the room',
@@ -499,7 +499,7 @@ const GS = {
   score:0,comboCount:0,comboMultiplier:1,maxCombo:0,
   currentStage:1,weather:'clear',
   playerX:50,playerWidth:30,playerHeight:40,moveLeft:false,moveRight:false,moveSpeed:5,
-  dashRequested:false,dashInvincible:false,dashActive:false,dashLastTime:0,dashCooldown:3000,dashDir:1,
+  dashRequested:false,dashInvincible:false,dashActive:false,dashRecovery:false,dashLastTime:0,dashCooldown:3000,dashDir:1,
   shield:false,speedBoost:false,slowMotion:false,invincible:false,enlarge:false,activePowerUps:[],
   fallingObjects:[],powerUpItems:[],particles:[],floatTexts:[],
   currentFallSpeed:3,currentSpawnInterval:800,lastSpawnTime:0,
@@ -583,11 +583,13 @@ function drawStickFigure(cx,x,y,color,pose,scale,alpha){
   cx.save();cx.globalAlpha=alpha||1;
   const s=scale||1;const headR=8*s;
   const hx=x,hy=y-30*s;
-  const isDive=pose==='diveR'||pose==='diveL';
+  const isSlide=pose==='slideR'||pose==='slideL';
+  const isGetup=pose==='getupR'||pose==='getupL';
+  const isGround=isSlide||isGetup;
   // Shadow on ground
   cx.fillStyle='rgba(0,0,0,0.3)';
-  cx.beginPath();cx.ellipse(x,groundY,isDive?18*s:12*s,4*s,0,0,Math.PI*2);cx.fill();
-  if(!isDive){
+  cx.beginPath();cx.ellipse(x,groundY,isSlide?20*s:isGetup?16*s:12*s,4*s,0,0,Math.PI*2);cx.fill();
+  if(!isGround){
     // Head - 3D sphere (upright poses only)
     const grad=cx.createRadialGradient(hx-2*s,hy-2*s,1,hx,hy,headR);
     grad.addColorStop(0,'rgba(255,255,255,0.6)');grad.addColorStop(0.5,color);grad.addColorStop(1,shadeColor(color,-40));
@@ -624,12 +626,13 @@ function drawStickFigure(cx,x,y,color,pose,scale,alpha){
     cx.beginPath();cx.moveTo(hx,hy+headR+4*s);cx.lineTo(hx+12*s,hy-8*s);cx.stroke();
     cx.beginPath();cx.moveTo(hx,y-2*s);cx.lineTo(hx-7*s,y+14*s);cx.stroke();
     cx.beginPath();cx.moveTo(hx,y-2*s);cx.lineTo(hx+7*s,y+14*s);cx.stroke();
-  } else if(isDive){
-    // Diving Head pose: horizontal body, head-first in dive direction
-    const d=pose==='diveR'?1:-1;
-    const bodyLen=22*s;const cy2=y+4*s;
-    // Head at front of dive
-    const headX=hx+d*(bodyLen+headR);const headY=cy2-4*s;
+  } else if(isSlide){
+    // Head Sliding: horizontal body near ground, head-first, limbs flailing frantically
+    const d=pose==='slideR'?1:-1;
+    const t=Date.now()/80;// fast flail speed
+    const bodyLen=22*s;const cy2=y+6*s;// lower to ground
+    // Head at front
+    const headX=hx+d*(bodyLen+headR);const headY=cy2-2*s;
     const dgrad=cx.createRadialGradient(headX-2*s*d,headY-2*s,1,headX,headY,headR);
     dgrad.addColorStop(0,'rgba(255,255,255,0.6)');dgrad.addColorStop(0.5,color);dgrad.addColorStop(1,shadeColor(color,-40));
     cx.fillStyle=dgrad;cx.beginPath();cx.arc(headX,headY,headR,0,Math.PI*2);cx.fill();
@@ -637,17 +640,41 @@ function drawStickFigure(cx,x,y,color,pose,scale,alpha){
     // Horizontal body
     cx.strokeStyle=color;cx.lineWidth=3*s;cx.lineCap='round';
     cx.beginPath();cx.moveTo(headX-d*headR,headY);cx.lineTo(hx,cy2);cx.stroke();
-    // Glow line on body
-    cx.strokeStyle=lightenColor(color,60);cx.lineWidth=1*s;cx.globalAlpha=(alpha||1)*0.4;
-    cx.beginPath();cx.moveTo(headX-d*headR,headY+1);cx.lineTo(hx,cy2+1);cx.stroke();
-    cx.globalAlpha=alpha||1;cx.strokeStyle=color;
-    // Arms stretched back
+    // Arms flailing frantically
     cx.lineWidth=2.5*s;
-    cx.beginPath();cx.moveTo(hx+d*6*s,cy2-2*s);cx.lineTo(hx-d*12*s,cy2-8*s);cx.stroke();
-    cx.beginPath();cx.moveTo(hx+d*6*s,cy2+2*s);cx.lineTo(hx-d*12*s,cy2+8*s);cx.stroke();
-    // Legs together, trailing
-    cx.beginPath();cx.moveTo(hx,cy2);cx.lineTo(hx-d*14*s,cy2+6*s);cx.stroke();
-    cx.beginPath();cx.moveTo(hx,cy2);cx.lineTo(hx-d*14*s,cy2-2*s);cx.stroke();
+    cx.beginPath();cx.moveTo(hx+d*4*s,cy2-2*s);cx.lineTo(hx-d*8*s,cy2-10*s+Math.sin(t*3)*6*s);cx.stroke();
+    cx.beginPath();cx.moveTo(hx+d*4*s,cy2+1*s);cx.lineTo(hx-d*10*s,cy2+4*s+Math.cos(t*3.5)*5*s);cx.stroke();
+    // Legs kicking wildly
+    cx.beginPath();cx.moveTo(hx,cy2);cx.lineTo(hx-d*12*s,cy2+4*s+Math.sin(t*2.8)*7*s);cx.stroke();
+    cx.beginPath();cx.moveTo(hx,cy2);cx.lineTo(hx-d*10*s,cy2-3*s+Math.cos(t*3.2)*6*s);cx.stroke();
+    // Dust/friction particles
+    cx.globalAlpha=(alpha||1)*0.5;
+    for(let p=0;p<3;p++){
+      const px2=hx-d*(8+p*6)*s+Math.random()*4*s;const py2=cy2+8*s+Math.random()*4*s;
+      cx.fillStyle='rgba(200,180,150,0.6)';cx.beginPath();cx.arc(px2,py2,2*s+Math.random()*2*s,0,Math.PI*2);cx.fill();
+    }
+    cx.globalAlpha=alpha||1;
+  } else if(isGetup){
+    // Getting up: panicked scramble, half-crouched, arms windmilling
+    const d=pose==='getupR'?1:-1;
+    const t=Date.now()/100;// fast panicked movement
+    const cy2=y+2*s;
+    // Head (bobbing up as getting up)
+    const headX2=hx+d*6*s;const headY2=hy+12*s+Math.sin(t*2)*3*s;
+    const ggrad=cx.createRadialGradient(headX2-2*s,headY2-2*s,1,headX2,headY2,headR);
+    ggrad.addColorStop(0,'rgba(255,255,255,0.6)');ggrad.addColorStop(0.5,color);ggrad.addColorStop(1,shadeColor(color,-40));
+    cx.fillStyle=ggrad;cx.beginPath();cx.arc(headX2,headY2,headR,0,Math.PI*2);cx.fill();
+    cx.fillStyle='rgba(255,255,255,0.4)';cx.beginPath();cx.ellipse(headX2-2*s,headY2-3*s,3*s,2*s,0,0,Math.PI*2);cx.fill();
+    // Body (diagonal, leaning forward trying to get up)
+    cx.strokeStyle=color;cx.lineWidth=3*s;cx.lineCap='round';
+    cx.beginPath();cx.moveTo(headX2,headY2+headR);cx.lineTo(hx,cy2+4*s);cx.stroke();
+    // Arms flailing (windmill panic)
+    cx.lineWidth=2.5*s;
+    cx.beginPath();cx.moveTo(headX2,headY2+headR+2*s);cx.lineTo(headX2+Math.sin(t*4)*10*s,headY2+Math.cos(t*4)*10*s);cx.stroke();
+    cx.beginPath();cx.moveTo(headX2,headY2+headR+2*s);cx.lineTo(headX2+Math.sin(t*4+3.14)*10*s,headY2+Math.cos(t*4+3.14)*10*s);cx.stroke();
+    // Legs scrambling to stand
+    cx.beginPath();cx.moveTo(hx,cy2+4*s);cx.lineTo(hx-6*s,cy2+14*s+Math.sin(t*3)*4*s);cx.stroke();
+    cx.beginPath();cx.moveTo(hx,cy2+4*s);cx.lineTo(hx+6*s,cy2+14*s+Math.cos(t*3)*4*s);cx.stroke();
   }
   cx.restore();
 }
@@ -856,15 +883,29 @@ const Weather = {
 const Dash = {
   execute(dir){
     if(Date.now()-GS.dashLastTime<GS.dashCooldown)return;
+    if(GS.dashRecovery)return;// still getting up
     GS.dashActive=true;GS.dashInvincible=true;GS.dashLastTime=Date.now();GS.dashDir=dir;
     SoundMgr.playSE('dash');Commentary.onDash();
-    const dist=120;const speed=dir*(dist/12);
+    const dist=150;const slideFrames=20;const recoveryFrames=12;
     let frames=0;
     const dashAnim=()=>{
-      if(frames>=12){GS.dashActive=false;GS.dashInvincible=false;return;}
-      GS.playerX+=speed/W*100;
-      GS.playerX=Math.max(0,Math.min(100-GS.playerWidth/W*100,GS.playerX));
-      frames++;requestAnimationFrame(dashAnim);
+      if(!GS.gameActive){GS.dashActive=false;GS.dashInvincible=false;GS.dashRecovery=false;return;}
+      if(frames<slideFrames){
+        // Ease-out deceleration: fast start, slow end (like sliding friction)
+        const progress=frames/slideFrames;
+        const easedSpeed=dir*(dist/slideFrames)*(1-progress*0.85);
+        GS.playerX+=easedSpeed/W*100;
+        GS.playerX=Math.max(0,Math.min(100-GS.playerWidth/W*100,GS.playerX));
+        frames++;requestAnimationFrame(dashAnim);
+      } else if(frames===slideFrames){
+        // Slide done → start recovery (getting up)
+        GS.dashInvincible=false;GS.dashActive=false;GS.dashRecovery=true;
+        frames++;requestAnimationFrame(dashAnim);
+      } else if(frames<slideFrames+recoveryFrames){
+        frames++;requestAnimationFrame(dashAnim);
+      } else {
+        GS.dashRecovery=false;// fully recovered
+      }
     };
     dashAnim();
   },
@@ -1502,15 +1543,15 @@ function render(){
   GS.powerUpItems.forEach(pu=>drawPowerUp(ctx,pu));
   // Player
   const pxAbs=GS.playerX/100*W;
-  const pose=GS.dashActive?(GS.dashDir>0?'diveR':'diveL'):(GS.moveLeft||GS.moveRight?'run':'stand');
+  const pose=GS.dashActive?(GS.dashDir>0?'slideR':'slideL'):GS.dashRecovery?(GS.dashDir>0?'getupR':'getupL'):(GS.moveLeft||GS.moveRight?'run':'stand');
   if(GS.isAlive){
     const pScale=(GS.enlarge?2.4:1)*PC_CHAR_SCALE; // Enlarge is even bigger on PC
     const drawY=groundY-14*pScale; // Position so feet touch ground line
     const myColor=getPlayerColor(GS.playerIndex);
-    if(GS.dashActive){// Diving head afterimage trail
+    if(GS.dashActive){// Head slide afterimage trail
       const trailDir=GS.dashDir>0?-1:1;
-      drawStickFigure(ctx,pxAbs+trailDir*12*PC_CHAR_SCALE,drawY,myColor,pose,pScale,0.2);
-      drawStickFigure(ctx,pxAbs+trailDir*6*PC_CHAR_SCALE,drawY,myColor,pose,pScale,0.4);
+      drawStickFigure(ctx,pxAbs+trailDir*14*PC_CHAR_SCALE,drawY,myColor,pose,pScale,0.15);
+      drawStickFigure(ctx,pxAbs+trailDir*7*PC_CHAR_SCALE,drawY,myColor,pose,pScale,0.35);
     }
     if(GS.invincible){
       const invRainbow=rainbowColor(Date.now()/150);
@@ -1852,7 +1893,7 @@ function resizeCanvas(){
 function resetGameState(){
   resultShown=false;
   Object.assign(GS,{score:0,comboCount:0,comboMultiplier:1,maxCombo:0,currentStage:1,weather:'clear',isAlive:true,
-    playerX:50,moveLeft:false,moveRight:false,dashActive:false,dashInvincible:false,dashLastTime:0,dashDir:1,
+    playerX:50,moveLeft:false,moveRight:false,dashActive:false,dashRecovery:false,dashInvincible:false,dashLastTime:0,dashDir:1,
     shield:false,speedBoost:false,slowMotion:false,invincible:false,enlarge:false,activePowerUps:[],
     fallingObjects:[],powerUpItems:[],particles:[],floatTexts:[],bossWarnings:[],
     difficultyFrozen:false,lastSpawnTime:0,nextBossTime:30000,weatherNextChange:15000,
