@@ -145,7 +145,11 @@ body{background:var(--bg-dark);color:var(--text-primary);font-family:'Courier Ne
 </div>
 </div>
 <div class="hud-players" id="hud-players" style="display:none"></div>
-<div class="game-canvas-wrap"><canvas id="gameCanvas"></canvas></div>
+<div class="game-canvas-wrap"><canvas id="gameCanvas"></canvas>
+<div id="countdown-overlay" style="display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,5,2,0.7);z-index:10;display:none;align-items:center;justify-content:center">
+<span id="countdown-text" style="font-size:clamp(80px,20vw,160px);font-weight:bold;color:var(--neon-green);text-shadow:0 0 40px var(--neon-green-glow),0 0 80px var(--neon-green-glow);font-family:inherit"></span>
+</div>
+</div>
 <div class="commentary-bar" id="commentary-bar"></div>
 <div class="mobile-controls" id="mobile-controls">
 <button class="ctrl-btn" id="ctrl-left">← 左</button>
@@ -1339,11 +1343,27 @@ function resetGameState(){
   const sd=STAGE_DIFFICULTY[1];GS.currentFallSpeed=sd.fallSpeed;GS.currentSpawnInterval=sd.spawnInterval;
 }
 
+// ===== Countdown =====
+function showCountdown(callback){
+  const overlay=document.getElementById('countdown-overlay');
+  const text=document.getElementById('countdown-text');
+  overlay.style.display='flex';
+  let count=3;
+  text.textContent=count;
+  SoundMgr.playSE('click');
+  const iv=setInterval(()=>{
+    count--;
+    if(count>0){text.textContent=count;SoundMgr.playSE('click');}
+    else if(count===0){text.textContent='GO!';text.style.color='var(--neon-gold)';text.style.textShadow='0 0 40px rgba(255,220,0,0.8),0 0 80px rgba(255,220,0,0.5)';SoundMgr.playSE('stage');}
+    else{clearInterval(iv);overlay.style.display='none';text.style.color='var(--neon-green)';text.style.textShadow='0 0 40px var(--neon-green-glow),0 0 80px var(--neon-green-glow)';callback();}
+  },800);
+}
+
 // ===== Start Solo Game =====
 function startSoloGame(){
   hideModal('mode-modal');resetGameState();
   GS.gameMode='normal';GS.difficulty='normal';
-  GS.isMulti=false;GS.isHost=true;GS.gameStartTime=Date.now();GS.stageStartTime=Date.now();GS.gameActive=true;
+  GS.isMulti=false;GS.isHost=true;
   GS.cpuPlayers=[];
   const delays={rookie:500,normal:200,expert:40};
   cpuSetup.forEach((lv,i)=>{
@@ -1354,7 +1374,10 @@ function startSoloGame(){
   showScreen('game');setupCanvas();
   GS.cpuPlayers.forEach((cpu,ci)=>{cpu.x=W*(0.2+ci*0.3);});
   SoundMgr.changeBGMForStage(1);
-  Commentary.queue=[];Commentary.add('c_start',1);gameLoop();
+  showCountdown(()=>{
+    GS.gameStartTime=Date.now();GS.stageStartTime=Date.now();GS.gameActive=true;
+    Commentary.queue=[];Commentary.add('c_start',1);gameLoop();
+  });
 }
 
 // ===== Score Attack Mode =====
@@ -1362,13 +1385,16 @@ const SCORE_ATTACK_DIFF={fallSpeed:7,spawnInterval:220,maxObjects:22};
 function startScoreAttack(){
   resetGameState();
   GS.gameMode='scoreAttack';GS.difficulty='hard';
-  GS.isMulti=false;GS.isHost=true;GS.gameStartTime=Date.now();GS.stageStartTime=Date.now();GS.gameActive=true;
+  GS.isMulti=false;GS.isHost=true;
   GS.currentStage=5;GS.cpuPlayers=[];
   GS.currentFallSpeed=SCORE_ATTACK_DIFF.fallSpeed;
   GS.currentSpawnInterval=SCORE_ATTACK_DIFF.spawnInterval;
   showScreen('game');setupCanvas();
   SoundMgr.changeBGMForStage(5);
-  Commentary.queue=[];Commentary.add('c_start',1);gameLoop();
+  showCountdown(()=>{
+    GS.gameStartTime=Date.now();GS.stageStartTime=Date.now();GS.gameActive=true;
+    Commentary.queue=[];Commentary.add('c_start',1);gameLoop();
+  });
 }
 
 // ===== Multiplayer =====
@@ -1426,7 +1452,7 @@ function setupLobby(roomId){
   roomRef.child('players/'+GS.playerIndex).onDisconnect().remove();
 }
 function startMultiGame(){
-  resetGameState();GS.isMulti=true;GS.gameActive=true;GS.gameStartTime=Date.now();GS.cpuPlayers=[];
+  resetGameState();GS.isMulti=true;GS.cpuPlayers=[];
   showScreen('game');setupCanvas();SoundMgr.playMultiBGM();
   const hpEl=document.getElementById('hud-players');hpEl.style.display='flex';hpEl.innerHTML='';
   Object.entries(GS.players).forEach(([idx,p])=>{
@@ -1450,7 +1476,10 @@ function startMultiGame(){
     const alive=Object.entries(players).filter(([k,v])=>v&&v.alive);
     if(alive.length<=1&&GS.gameActive){GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);setTimeout(()=>showResult(),500);}
   });
-  Commentary.queue=[];Commentary.add('c_start',1);gameLoop();
+  showCountdown(()=>{
+    GS.gameStartTime=Date.now();GS.gameActive=true;
+    Commentary.queue=[];Commentary.add('c_start',1);gameLoop();
+  });
 }
 function rematch(){
   if(GS.isMulti&&GS.roomId){
