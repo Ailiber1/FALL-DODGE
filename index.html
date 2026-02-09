@@ -2092,8 +2092,13 @@ function setupLobby(roomId){
   });
   roomRef.child('status').on('value',snap=>{if(snap.val()==='playing'&&!GS.gameActive)startMultiGame();});
   document.getElementById('btn-start-game').onclick=()=>{roomRef.child('status').set('playing');};
-  document.getElementById('btn-leave-lobby').onclick=()=>{roomRef.child('players/'+GS.playerIndex).remove();SyncLayer.disconnect();showScreen('title');};
+  document.getElementById('btn-leave-lobby').onclick=()=>{cleanupRoom(roomId,GS.playerIndex);SyncLayer.disconnect();GS.isMulti=false;GS.roomId=null;showScreen('title');};
   roomRef.child('players/'+GS.playerIndex).onDisconnect().remove();
+  // If all players disconnect, remove the entire room
+  roomRef.child('players').on('value',snap=>{
+    const remaining=snap.val();
+    if(!remaining||Object.keys(remaining).length===0){roomRef.remove();}
+  });
 }
 function startMultiGame(){
   resetGameState();GS.isMulti=true;GS.cpuPlayers=[];
@@ -2253,11 +2258,23 @@ function cleanupCountdown(){
   if(multiResultTimer){clearInterval(multiResultTimer);multiResultTimer=null;}
   if(multiResultReadyRef){multiResultReadyRef.off();multiResultReadyRef=null;}
 }
+function cleanupRoom(roomId,playerIndex){
+  if(!roomId)return;
+  const rRef=database.ref('rooms/'+roomId);
+  rRef.child('players/'+playerIndex).remove().then(()=>{
+    rRef.child('players').once('value',snap=>{
+      const remaining=snap.val();
+      if(!remaining||Object.keys(remaining).length===0){
+        rRef.remove();
+      }
+    });
+  });
+  rRef.child('readyPlayers/'+playerIndex).remove();
+}
 function multiBackToTitle(){
   cleanupCountdown();
   if(GS.isMulti&&GS.roomId){
-    database.ref('rooms/'+GS.roomId+'/players/'+GS.playerIndex).remove();
-    database.ref('rooms/'+GS.roomId+'/readyPlayers/'+GS.playerIndex).remove();
+    cleanupRoom(GS.roomId,GS.playerIndex);
     SyncLayer.disconnect();GS.isMulti=false;GS.roomId=null;
   }
   SoundMgr.stopBGM();SoundMgr.playBGM('FALL DODGE_OP.mp3');showScreen('title');
@@ -2269,8 +2286,7 @@ function rematch(){
 function backToTitle(){
   if(GS.isMulti&&GS.roomId){
     cleanupCountdown();
-    database.ref('rooms/'+GS.roomId+'/players/'+GS.playerIndex).remove();
-    database.ref('rooms/'+GS.roomId+'/readyPlayers/'+GS.playerIndex).remove();
+    cleanupRoom(GS.roomId,GS.playerIndex);
     SyncLayer.disconnect();GS.isMulti=false;GS.roomId=null;
   }
   SoundMgr.stopBGM();SoundMgr.playBGM('FALL DODGE_OP.mp3');showScreen('title');
