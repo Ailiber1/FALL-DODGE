@@ -349,10 +349,18 @@ function getDeviceId(){let id=localStorage.getItem('fall_dodge_device_id');if(!i
 const SoundMgr = {
   bgm:null, bgmEnabled:true, seEnabled:true, audioCtx:null,
   getCtx(){if(!this.audioCtx)this.audioCtx=new(window.AudioContext||window.webkitAudioContext)();return this.audioCtx;},
+  pendingBGM:null,
   playBGM(url){
     if(this.bgm){this.bgm.pause();this.bgm.currentTime=0;}
     this.bgm=new Audio(url);this.bgm.loop=true;this.bgm.volume=0.4;
-    if(this.bgmEnabled)this.bgm.play().catch(()=>{});
+    this.pendingBGM=null;
+    const p=this.bgm.play();
+    if(p)p.catch(()=>{this.pendingBGM=url;});
+  },
+  resumePendingBGM(){
+    if(!this.pendingBGM)return;
+    if(this.bgm){this.bgm.play().catch(()=>{});}
+    this.pendingBGM=null;
   },
   stopBGM(){if(this.bgm){this.bgm.pause();this.bgm.currentTime=0;}},
   changeBGMForStage(stage){
@@ -1856,34 +1864,123 @@ function drawBlockText(cx,text,x,y,blockSize,color,glowColor){
   cx.shadowBlur=0;cx.restore();
 }
 let titleAnimId=null;
+// Title stick figure pose: stumble/fall/getup cycle
+function drawStickPose(cx,x,y,color,pose,tilt,scale,alpha){
+  cx.save();cx.globalAlpha=alpha||1;
+  const s=scale||1;const headR=8*s;
+  // Apply tilt rotation around feet
+  if(tilt){cx.translate(x,y+14*s);cx.rotate(tilt);cx.translate(-x,-(y+14*s));}
+  const hx=x,hy=y-30*s;
+  // Shadow
+  cx.fillStyle='rgba(0,0,0,0.3)';cx.beginPath();cx.ellipse(x,y+14*s,12*s,4*s,0,0,Math.PI*2);cx.fill();
+  // Head
+  const grad=cx.createRadialGradient(hx-2*s,hy-2*s,1,hx,hy,headR);
+  grad.addColorStop(0,'rgba(255,255,255,0.6)');grad.addColorStop(0.5,color);grad.addColorStop(1,shadeColor(color,-40));
+  cx.fillStyle=grad;cx.beginPath();cx.arc(hx,hy,headR,0,Math.PI*2);cx.fill();
+  cx.fillStyle='rgba(255,255,255,0.4)';cx.beginPath();cx.ellipse(hx-2*s,hy-3*s,3*s,2*s,0,0,Math.PI*2);cx.fill();
+  // Body
+  cx.strokeStyle=color;cx.lineWidth=3*s;cx.lineCap='round';
+  cx.beginPath();cx.moveTo(hx,hy+headR);cx.lineTo(hx,y-2*s);cx.stroke();
+  cx.strokeStyle=color;cx.lineWidth=2.5*s;
+  if(pose==='stumble'){
+    // Arms flailing
+    const t=Date.now()/80;
+    cx.beginPath();cx.moveTo(hx,hy+headR+4*s);cx.lineTo(hx-14*s*Math.sin(t),hy-4*s);cx.stroke();
+    cx.beginPath();cx.moveTo(hx,hy+headR+4*s);cx.lineTo(hx+14*s*Math.cos(t),hy-2*s);cx.stroke();
+    cx.beginPath();cx.moveTo(hx,y-2*s);cx.lineTo(hx-6*s,y+12*s);cx.stroke();
+    cx.beginPath();cx.moveTo(hx,y-2*s);cx.lineTo(hx+10*s,y+10*s);cx.stroke();
+  } else if(pose==='dizzy'){
+    // Sitting with stars
+    cx.beginPath();cx.moveTo(hx,hy+headR+4*s);cx.lineTo(hx-12*s,y+4*s);cx.stroke();
+    cx.beginPath();cx.moveTo(hx,hy+headR+4*s);cx.lineTo(hx+6*s,y+2*s);cx.stroke();
+    cx.beginPath();cx.moveTo(hx,y-2*s);cx.lineTo(hx-8*s,y+14*s);cx.stroke();
+    cx.beginPath();cx.moveTo(hx,y-2*s);cx.lineTo(hx+8*s,y+14*s);cx.stroke();
+    // Stars spinning around head
+    const st=Date.now()/300;
+    cx.font=(9*s)+'px sans-serif';cx.textAlign='center';cx.globalAlpha=0.9;
+    for(let i=0;i<3;i++){
+      const a=st+i*2.1;const sr=14*s;
+      cx.fillText('✦',hx+Math.cos(a)*sr,hy-8*s+Math.sin(a)*sr*0.5);
+    }
+  } else {
+    // Default: run/stand (delegate to original)
+    const t=Date.now()/150;
+    if(pose==='run'){
+      cx.beginPath();cx.moveTo(hx,hy+headR+4*s);cx.lineTo(hx-10*s*Math.sin(t),hy+headR+14*s);cx.stroke();
+      cx.beginPath();cx.moveTo(hx,hy+headR+4*s);cx.lineTo(hx+10*s*Math.sin(t),hy+headR+14*s);cx.stroke();
+      cx.beginPath();cx.moveTo(hx,y-2*s);cx.lineTo(hx-8*s*Math.sin(t),y+12*s);cx.stroke();
+      cx.beginPath();cx.moveTo(hx,y-2*s);cx.lineTo(hx+8*s*Math.sin(t),y+12*s);cx.stroke();
+    } else {
+      cx.beginPath();cx.moveTo(hx,hy+headR+4*s);cx.lineTo(hx-10*s,hy+headR+16*s);cx.stroke();
+      cx.beginPath();cx.moveTo(hx,hy+headR+4*s);cx.lineTo(hx+10*s,hy+headR+16*s);cx.stroke();
+      cx.beginPath();cx.moveTo(hx,y-2*s);cx.lineTo(hx-7*s,y+14*s);cx.stroke();
+      cx.beginPath();cx.moveTo(hx,y-2*s);cx.lineTo(hx+7*s,y+14*s);cx.stroke();
+    }
+  }
+  cx.restore();
+}
 function drawTitleChars(){
   const tc=document.getElementById('titleCanvas');if(!tc)return;
   const tctx=tc.getContext('2d');
   const W=tc.width,H=tc.height;
-  // Per-character animation state
+  // Per-character state with fall cycle
   const chars=[
-    {pIdx:0,baseX:55, dir:1,speed:0.6,range:20,offset:0},
-    {pIdx:1,baseX:145,dir:-1,speed:0.8,range:25,offset:1.2},
-    {pIdx:2,baseX:255,dir:1,speed:0.7,range:18,offset:2.5},
-    {pIdx:3,baseX:345,dir:-1,speed:0.9,range:22,offset:3.8}
+    {pIdx:0,baseX:55, speed:0.6,range:20,offset:0,      fallAt:4.5,fallDur:2.5},
+    {pIdx:1,baseX:145,speed:0.8,range:25,offset:1.2,     fallAt:8.0,fallDur:2.8},
+    {pIdx:2,baseX:255,speed:0.7,range:18,offset:2.5,     fallAt:2.0,fallDur:2.2},
+    {pIdx:3,baseX:345,speed:0.9,range:22,offset:3.8,     fallAt:6.0,fallDur:3.0}
   ];
+  // Each char falls on a cycle: normal → stumble → fall → dizzy → getup → normal
+  const cyclePeriod=12;// seconds per full cycle
   if(titleAnimId)cancelAnimationFrame(titleAnimId);
   function animate(){
     titleAnimId=requestAnimationFrame(animate);
     tctx.clearRect(0,0,W,H);
-    // Draw block title
     const bs=7;
     drawBlockText(tctx,'FALL',W/2,12,bs,'#00ff41','rgba(0,255,65,0.7)');
     drawBlockText(tctx,'DODGE',W/2,82,bs,'#00ff41','rgba(0,255,65,0.7)');
-    // Animated stick figures dodging left and right
     const now=Date.now()/1000;
     const figY=185;
     chars.forEach(ch=>{
+      const cycleT=(now+ch.fallAt)%cyclePeriod;
+      const fallStart=ch.fallAt;
+      const fd=ch.fallDur;
+      let pose='run',tilt=0,alpha=1,px;
       const wave=Math.sin(now*ch.speed*2+ch.offset)*ch.range;
-      const px=ch.baseX+wave;
-      const moving=Math.abs(Math.cos(now*ch.speed*2+ch.offset))>0.2;
-      const pose=moving?'run':'stand';
-      drawStickFigure(tctx,px,figY,PLAYER_COLORS[ch.pIdx].hex,pose,0.8,1);
+      px=ch.baseX+wave;
+      // Phase: stumble(0.4s) → falling(0.3s) → dizzy(1.0s) → getup(0.5s)
+      const stumbleT=fallStart;
+      const fallingT=stumbleT+0.4;
+      const groundT=fallingT+0.3;
+      const dizzyT=groundT+1.0;
+      const getupT=dizzyT+0.5;
+      if(cycleT>=stumbleT&&cycleT<fallingT){
+        // Stumble - arms flailing, slight tilt
+        pose='stumble';
+        const p=(cycleT-stumbleT)/0.4;
+        tilt=p*0.3*(ch.offset>2?-1:1);
+      } else if(cycleT>=fallingT&&cycleT<groundT){
+        // Falling down
+        pose='stumble';
+        const p=(cycleT-fallingT)/0.3;
+        tilt=(0.3+p*1.2)*(ch.offset>2?-1:1);
+      } else if(cycleT>=groundT&&cycleT<dizzyT){
+        // On the ground dizzy
+        pose='dizzy';
+        tilt=1.5*(ch.offset>2?-1:1);
+        // Slight wobble
+        tilt+=Math.sin(now*8)*0.05;
+      } else if(cycleT>=dizzyT&&cycleT<getupT){
+        // Getting up
+        pose='run';
+        const p=(cycleT-dizzyT)/0.5;
+        tilt=(1-p)*1.5*(ch.offset>2?-1:1);
+      } else {
+        // Normal movement
+        const moving=Math.abs(Math.cos(now*ch.speed*2+ch.offset))>0.2;
+        pose=moving?'run':'stand';
+      }
+      drawStickPose(tctx,px,figY,PLAYER_COLORS[ch.pIdx].hex,pose,tilt,0.8,alpha);
     });
   }
   animate();
@@ -1905,6 +2002,9 @@ function init(){
   setTimeout(goTitle,2500);
   document.getElementById('splash-screen').addEventListener('click',goTitle);
   setupInputs();setupUI();
+  // Resume BGM on first user interaction (browser autoplay policy)
+  const unlockAudio=()=>{SoundMgr.resumePendingBGM();document.removeEventListener('click',unlockAudio);document.removeEventListener('touchstart',unlockAudio);document.removeEventListener('keydown',unlockAudio);};
+  document.addEventListener('click',unlockAudio);document.addEventListener('touchstart',unlockAudio);document.addEventListener('keydown',unlockAudio);
 }
 window.addEventListener('DOMContentLoaded',init);
 </script>
