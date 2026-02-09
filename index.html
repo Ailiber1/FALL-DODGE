@@ -769,8 +769,14 @@ function getHitScale(){return GS.enlarge?1.8:1;}
 function checkCollision(px,py,pw,ph,obj){
   if(GS.dashInvincible)return false;
   if(GS.invincible){spawnParticles(obj.x+obj.w/2,obj.y+obj.h/2,rainbowColor(Date.now()/150),8,5);return false;}
-  if(GS.shield){GS.shield=false;SoundMgr.playSE('shield_break');spawnFloatText(px,py-20,t('shield_break'),'#4488ff',18);
-    spawnParticles(px+pw/2,py+ph/2,'#4488ff',12,6);Commentary.add('c_shield_break',2);return false;}
+  if(GS.shield){obj.deflected=true;GS.shield=false;SoundMgr.playSE('shield_break');spawnFloatText(px,py-20,t('shield_break'),'#4488ff',22);
+    spawnParticles(px+pw/2,py+ph/2,'#4488ff',18,8);Commentary.add('c_shield_break',2);
+    // Deflect: fling the object away
+    const dx=obj.x+obj.w/2-(px+pw/2);
+    obj.deflectVx=(dx>0?1:-1)*(6+Math.random()*4);
+    obj.deflectVy=-(8+Math.random()*5);
+    obj.rotSpeed=(Math.random()-0.5)*0.4;
+    return false;}
   const sw=getHitScale();
   const adjW=pw*sw,adjH=ph*sw;
   const adjX=px+(pw-adjW)/2,adjY=py+(ph-adjH)/2;
@@ -1294,6 +1300,10 @@ function gameLoop(){
   const pxAbs=GS.playerX/100*W;const pyAbs=groundY-GS.playerHeight;
   for(let i=GS.fallingObjects.length-1;i>=0;i--){
     const obj=GS.fallingObjects[i];
+    // Deflected by shield - fly away
+    if(obj.deflected){obj.x+=obj.deflectVx;obj.y+=obj.deflectVy;obj.deflectVy+=0.5;
+      obj.rotation=(obj.rotation||0)+(obj.rotSpeed||0);
+      if(obj.y>H+50||obj.x<-100||obj.x>W+100){GS.fallingObjects.splice(i,1);}continue;}
     if(GS.reverse){obj.y-=obj.speed;}else{
       if(obj.bounced){obj.y+=obj.bounceVy;obj.bounceVy+=0.5;if(obj.y>H+50){
         addScore(false,obj.bossPoints||0);GS.fallingObjects.splice(i,1);continue;}}
