@@ -1524,14 +1524,14 @@ function showResult(){
         html+='<div style="color:'+pColor+'"><span>'+(i+1)+getSuffix(i+1)+' ['+team+'] '+(p.username||'P'+(parseInt(idx)+1))+(parseInt(idx)===GS.playerIndex?' (YOU)':'')+'</span><span>'+(p.score||0)+'</span></div>';
       });
       html+='</div>';
-      html+='<div class="result-btns"><button class="btn" onclick="rematch()">'+t('rematch')+'</button>';
-      html+='<button class="btn btn-sub" onclick="backToTitle()">'+t('back_to_title')+'</button></div>';
+      html+='<div id="multi-result-footer"></div>';
       box.innerHTML=html;
       showScreen('result');
       setTimeout(()=>{
         const wc=document.getElementById('winnerCanvas');
         if(wc){const wctx=wc.getContext('2d');drawStickFigure(wctx,50,60,TEAM_COLORS[winTeam].hex,'win',1.5,1);}
       },100);
+      startMultiResultCountdown();
     } else {
       // Individual result
       const sorted=Object.entries(GS.players).filter(([k,v])=>v).sort((a,b)=>(b[1].score||0)-(a[1].score||0));
@@ -1550,14 +1550,14 @@ function showResult(){
         html+='<div style="color:'+pColor+'"><span>'+(i+1)+getSuffix(i+1)+' P'+(parseInt(idx)+1)+' '+(p.username||'')+(parseInt(idx)===GS.playerIndex?' (YOU)':'')+'</span><span>'+(p.score||0)+'</span></div>';
       });
       html+='</div>';
-      html+='<div class="result-btns"><button class="btn" onclick="rematch()">'+t('rematch')+'</button>';
-      html+='<button class="btn btn-sub" onclick="backToTitle()">'+t('back_to_title')+'</button></div>';
+      html+='<div id="multi-result-footer"></div>';
       box.innerHTML=html;
       showScreen('result');
       setTimeout(()=>{
         const wc=document.getElementById('winnerCanvas');
         if(wc){const wctx=wc.getContext('2d');drawStickFigure(wctx,50,60,PLAYER_COLORS[parseInt(winnerIdx)]?.hex||'#fff','win',1.5,1);}
       },100);
+      startMultiResultCountdown();
     }
   } else {
     const isScoreAtk=GS.gameMode==='scoreAttack';
@@ -1988,14 +1988,138 @@ function startMultiGame(){
     Commentary.queue=[];Commentary.add('c_start',1);gameLoop();
   });
 }
-function rematch(){
+// ===== Multi Result Countdown (LINKED BLOCKS style) =====
+let multiResultTimer=null;
+let multiResultReadyRef=null;
+function startMultiResultCountdown(){
+  if(!GS.isMulti||!GS.roomId)return;
+  const COUNTDOWN_SEC=30;
+  const roomRef=database.ref('rooms/'+GS.roomId);
+  // Clear any previous ready state
+  roomRef.child('readyPlayers').remove();
+  const footer=document.getElementById('multi-result-footer');
+  if(!footer)return;
+  let secondsLeft=COUNTDOWN_SEC;
+  let myChoice=null; // null=undecided, 'retry', 'exit'
+  // Render footer
+  function renderFooter(){
+    let html='<div style="text-align:center;margin-top:12px">';
+    html+='<div style="font-size:20px;color:var(--neon-gold);font-weight:bold;text-shadow:0 0 8px rgba(255,204,0,0.5);margin-bottom:10px">';
+    html+='⏱ '+secondsLeft+'s</div>';
+    html+='<div id="ready-status" style="font-size:12px;color:var(--text-dim);margin-bottom:10px"></div>';
+    if(!myChoice){
+      html+='<div class="result-btns">';
+      html+='<button class="btn" id="btn-multi-retry" style="font-size:16px;padding:14px;background:rgba(0,255,65,0.06)">▶ '+(currentLang==='ja'?'リトライ':'Retry')+'</button>';
+      html+='<button class="btn btn-sub" id="btn-multi-exit">'+(currentLang==='ja'?'退出する':'Exit')+'</button>';
+      html+='</div>';
+    } else if(myChoice==='retry'){
+      html+='<div style="color:var(--neon-green);font-size:14px;font-weight:bold">✔ '+(currentLang==='ja'?'リトライ待機中...':'Waiting for retry...')+'</div>';
+    }
+    html+='</div>';
+    footer.innerHTML=html;
+    // Attach button events
+    const retryBtn=document.getElementById('btn-multi-retry');
+    const exitBtn=document.getElementById('btn-multi-exit');
+    if(retryBtn)retryBtn.addEventListener('click',()=>{
+      myChoice='retry';SoundMgr.playSE('click');
+      roomRef.child('readyPlayers/'+GS.playerIndex).set(true);
+      renderFooter();
+    });
+    if(exitBtn)exitBtn.addEventListener('click',()=>{
+      myChoice='exit';SoundMgr.playSE('click');
+      cleanupCountdown();
+      multiBackToTitle();
+    });
+  }
+  // Update ready status display
+  function updateReadyDisplay(readyPlayers){
+    const el=document.getElementById('ready-status');
+    if(!el)return;
+    const readyCount=readyPlayers?Object.keys(readyPlayers).length:0;
+    const totalCount=GS.players?Object.keys(GS.players).filter(k=>GS.players[k]).length:0;
+    let statusHtml='';
+    if(readyCount>0){
+      const readyNames=[];
+      Object.keys(readyPlayers).forEach(idx=>{
+        const p=GS.players[idx];
+        if(p)readyNames.push(p.username||'P'+(parseInt(idx)+1));
+      });
+      statusHtml='<span style="color:var(--neon-green)">✔ '+readyNames.join(', ')+'</span>';
+      statusHtml+=' ('+readyCount+'/'+totalCount+')';
+    }
+    el.innerHTML=statusHtml;
+  }
+  // Listen for ready state changes
+  multiResultReadyRef=roomRef.child('readyPlayers');
+  multiResultReadyRef.on('value',snap=>{
+    updateReadyDisplay(snap.val());
+  });
+  renderFooter();
+  // Countdown timer
+  multiResultTimer=setInterval(()=>{
+    secondsLeft--;
+    const timerEl=footer.querySelector('div[style*="font-size:20px"]');
+    if(timerEl)timerEl.textContent='⏱ '+secondsLeft+'s';
+    if(secondsLeft<=5&&timerEl){timerEl.style.color='var(--neon-red)';timerEl.style.textShadow='0 0 12px rgba(255,0,0,0.8)';}
+    if(secondsLeft<=0){
+      clearInterval(multiResultTimer);multiResultTimer=null;
+      resolveMultiResult();
+    }
+  },1000);
+}
+function resolveMultiResult(){
+  if(!GS.isMulti||!GS.roomId)return;
+  const roomRef=database.ref('rooms/'+GS.roomId);
+  roomRef.child('readyPlayers').once('value',snap=>{
+    const ready=snap.val();
+    const readyCount=ready?Object.keys(ready).length:0;
+    const myReady=ready&&ready[GS.playerIndex];
+    cleanupCountdown();
+    if(readyCount>=2&&myReady){
+      // Enough players for rematch → go to lobby
+      roomRef.child('readyPlayers').remove();
+      // Remove non-ready players from room
+      Object.keys(GS.players).forEach(idx=>{
+        if(GS.players[idx]&&!(ready&&ready[idx])){
+          roomRef.child('players/'+idx).remove();
+        }
+      });
+      roomRef.child('status').set('waiting');
+      roomRef.child('players/'+GS.playerIndex).update({alive:true,score:0,x:50});
+      showScreen('lobby');setupLobby(GS.roomId);
+    } else {
+      // Not enough players - force exit
+      if(myReady){
+        showToast(currentLang==='ja'?'⚠ リトライ人数が不足のため終了します（2人以上必要）':'⚠ Not enough players for rematch (need 2+)',4000);
+      }
+      multiBackToTitle();
+    }
+  });
+}
+function cleanupCountdown(){
+  if(multiResultTimer){clearInterval(multiResultTimer);multiResultTimer=null;}
+  if(multiResultReadyRef){multiResultReadyRef.off();multiResultReadyRef=null;}
+}
+function multiBackToTitle(){
+  cleanupCountdown();
   if(GS.isMulti&&GS.roomId){
-    database.ref('rooms/'+GS.roomId+'/players/'+GS.playerIndex).update({alive:true,score:0,x:50});
-    database.ref('rooms/'+GS.roomId+'/status').set('waiting');showScreen('lobby');setupLobby(GS.roomId);
-  } else startSoloGame();
+    database.ref('rooms/'+GS.roomId+'/players/'+GS.playerIndex).remove();
+    database.ref('rooms/'+GS.roomId+'/readyPlayers/'+GS.playerIndex).remove();
+    SyncLayer.disconnect();GS.isMulti=false;GS.roomId=null;
+  }
+  SoundMgr.stopBGM();SoundMgr.playBGM('FALL DODGE_OP.mp3');showScreen('title');
+}
+function rematch(){
+  // Solo only (multi uses countdown system)
+  startSoloGame();
 }
 function backToTitle(){
-  if(GS.isMulti&&GS.roomId){database.ref('rooms/'+GS.roomId+'/players/'+GS.playerIndex).remove();SyncLayer.disconnect();GS.isMulti=false;GS.roomId=null;}
+  if(GS.isMulti&&GS.roomId){
+    cleanupCountdown();
+    database.ref('rooms/'+GS.roomId+'/players/'+GS.playerIndex).remove();
+    database.ref('rooms/'+GS.roomId+'/readyPlayers/'+GS.playerIndex).remove();
+    SyncLayer.disconnect();GS.isMulti=false;GS.roomId=null;
+  }
   SoundMgr.stopBGM();SoundMgr.playBGM('FALL DODGE_OP.mp3');showScreen('title');
 }
 
