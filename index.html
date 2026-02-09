@@ -457,6 +457,13 @@ const STAGE_DIFFICULTY = {
   6:{fallSpeed:12,spawnInterval:120, maxObjects:35,timeLimit:240}
 };
 
+// Multiplayer difficulty presets: easy≈Stage3, normal≈Stage4, hard≈ScoreAttack
+const MULTI_DIFFICULTY = {
+  easy:  {fallSpeed:5.5,spawnInterval:350,maxObjects:15},
+  normal:{fallSpeed:7,  spawnInterval:250,maxObjects:20},
+  hard:  {fallSpeed:7,  spawnInterval:220,maxObjects:22}
+};
+
 // ===== Falling Object Types =====
 const OBJ_TYPES = [
   {id:'hammer',w:28,h:40,color:'#ff8800',name:'ハンマー'},
@@ -1173,8 +1180,9 @@ function spawnFallingObject(){
   const now=Date.now();
   if(now-GS.lastSpawnTime<GS.currentSpawnInterval)return;
   const sd=STAGE_DIFFICULTY[GS.currentStage]||STAGE_DIFFICULTY[1];
-  let maxObj=GS.gameMode==='scoreAttack'?SCORE_ATTACK_DIFF.maxObjects:sd.maxObjects;
-  if(GS.gameMode!=='scoreAttack'){
+  const multiDiff=GS.isMulti?MULTI_DIFFICULTY[GS.difficulty]:null;
+  let maxObj=GS.gameMode==='scoreAttack'?SCORE_ATTACK_DIFF.maxObjects:multiDiff?multiDiff.maxObjects:sd.maxObjects;
+  if(GS.gameMode!=='scoreAttack'&&!GS.isMulti){
     const stageElapsed=(Date.now()-GS.stageStartTime)/1000;
     const timeLeft=sd.timeLimit-stageElapsed;
     if(timeLeft<=30)maxObj+=Math.floor((1-timeLeft/30)*10);
@@ -1265,12 +1273,23 @@ function spawnWallCrushLocal(gapXR,gapRatio,warnDur){
 
 // ===== Difficulty Update (stage-based + time ramp) =====
 function updateDifficulty(){
-  if(GS.gameMode==='scoreAttack'){
-    // Score Attack: fixed high difficulty, very slow gradual ramp over time
+  if(GS.gameMode==='scoreAttack'||(GS.isMulti&&GS.difficulty==='hard')){
+    // Score Attack & Multi Hard: same high difficulty, slow gradual ramp
+    const base=GS.isMulti?MULTI_DIFFICULTY.hard:SCORE_ATTACK_DIFF;
     const elapsed=(Date.now()-GS.gameStartTime)/1000;
     const ramp=Math.min(1,elapsed/600);// maxes out at 10 minutes
-    GS.currentFallSpeed=SCORE_ATTACK_DIFF.fallSpeed*(1+ramp*0.8);
-    GS.currentSpawnInterval=Math.max(80,SCORE_ATTACK_DIFF.spawnInterval*(1-ramp*0.5));
+    GS.currentFallSpeed=base.fallSpeed*(1+ramp*0.8);
+    GS.currentSpawnInterval=Math.max(80,base.spawnInterval*(1-ramp*0.5));
+    if(GS.slowMotion)GS.currentFallSpeed*=0.5;
+    return;
+  }
+  if(GS.isMulti){
+    // Multi easy/normal: fixed difficulty with gentle ramp
+    const md=MULTI_DIFFICULTY[GS.difficulty]||MULTI_DIFFICULTY.normal;
+    const elapsed=(Date.now()-GS.gameStartTime)/1000;
+    const ramp=Math.min(1,elapsed/600);
+    GS.currentFallSpeed=md.fallSpeed*(1+ramp*0.6);
+    GS.currentSpawnInterval=Math.max(100,md.spawnInterval*(1-ramp*0.4));
     if(GS.slowMotion)GS.currentFallSpeed*=0.5;
     return;
   }
@@ -1324,6 +1343,8 @@ function advanceStage(){
 // ===== Game Loop =====
 function gameLoop(){
   if(!GS.gameActive){return;}
+  // Always cancel previous frame to guarantee only ONE loop runs
+  if(GS.animationId){cancelAnimationFrame(GS.animationId);}
   GS.animationId=requestAnimationFrame(gameLoop);
   GS.elapsed=Date.now()-GS.gameStartTime;
   const now=Date.now();
@@ -2177,6 +2198,7 @@ function setupLobby(roomId){
   }
   updateLobbyInfo();
   // --- Player List ---
+  roomRef.child('players').off('value');// clear stale listeners on rematch
   roomRef.child('players').on('value',snap=>{
     const players=snap.val()||{};GS.players=players;
     const container=document.getElementById('lobby-players');container.innerHTML='';
@@ -2197,6 +2219,8 @@ function setupLobby(roomId){
     }
     refreshTeamUI();
   });
+  // Remove any previous status listener before adding new one (prevents stacking on rematch)
+  roomRef.child('status').off('value');
   let multiStarted=false;
   roomRef.child('status').on('value',snap=>{if(snap.val()==='playing'&&!GS.gameActive&&!multiStarted){multiStarted=true;startMultiGame();}});
   document.getElementById('btn-start-game').onclick=()=>{roomRef.child('status').set('playing');};
@@ -2209,6 +2233,9 @@ function startMultiGame(){
   _multiGameStarting=true;
   if(GS.animationId){cancelAnimationFrame(GS.animationId);GS.animationId=null;}
   resetGameState();GS.isMulti=true;GS.cpuPlayers=[];
+  // Apply multiplayer difficulty preset
+  const md=MULTI_DIFFICULTY[GS.difficulty]||MULTI_DIFFICULTY.normal;
+  GS.currentFallSpeed=md.fallSpeed;GS.currentSpawnInterval=md.spawnInterval;
   showScreen('game');setupCanvas();SoundMgr.playMultiBGM();
   // Show multi rules in HUD
   const ruleEl=document.getElementById('hud-multi-rule');
