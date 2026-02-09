@@ -1307,45 +1307,49 @@ function gameLoop(){
   }
   // Update falling objects
   const pxAbs=GS.playerX/100*W;const pyAbs=groundY-GS.playerHeight;
+  const isNonHost=GS.isMulti&&!GS.isHost;
   for(let i=GS.fallingObjects.length-1;i>=0;i--){
     const obj=GS.fallingObjects[i];
-    // Deflected by shield - fly away
-    if(obj.deflected){obj.x+=obj.deflectVx;obj.y+=obj.deflectVy;obj.deflectVy+=0.5;
+    // Non-host: skip physics for synced (non-wall) objects; host handles movement
+    const localObj=!isNonHost||obj.typeId==='wall';
+    if(localObj){
+      // Deflected by shield - fly away
+      if(obj.deflected){obj.x+=obj.deflectVx;obj.y+=obj.deflectVy;obj.deflectVy+=0.5;
+        obj.rotation=(obj.rotation||0)+(obj.rotSpeed||0);
+        if(obj.y>H+50||obj.x<-100||obj.x>W+100){GS.fallingObjects.splice(i,1);}continue;}
+      if(GS.reverse){obj.y-=obj.speed;}else{
+        if(obj.bounced){obj.y+=obj.bounceVy;obj.bounceVy+=0.5;if(obj.y>H+50){
+          addScore(false,obj.bossPoints||0);GS.fallingObjects.splice(i,1);continue;}}
+        else if(obj.bigBounced){obj.y+=obj.bounceVy;obj.bounceVy+=0.4;}
+        else{obj.y+=obj.speed;}
+      }
       obj.rotation=(obj.rotation||0)+(obj.rotSpeed||0);
-      if(obj.y>H+50||obj.x<-100||obj.x>W+100){GS.fallingObjects.splice(i,1);}continue;}
-    if(GS.reverse){obj.y-=obj.speed;}else{
-      if(obj.bounced){obj.y+=obj.bounceVy;obj.bounceVy+=0.5;if(obj.y>H+50){
-        addScore(false,obj.bossPoints||0);GS.fallingObjects.splice(i,1);continue;}}
-      else if(obj.bigBounced){obj.y+=obj.bounceVy;obj.bounceVy+=0.4;}
-      else{obj.y+=obj.speed;}
-    }
-    obj.rotation=(obj.rotation||0)+(obj.rotSpeed||0);
-    Weather.applyToObject(obj);
-    obj.x=Math.max(0,Math.min(W-obj.w,obj.x));
-    // Ground collision - bounce
-    if(!obj.bounced&&obj.y+obj.h>=groundY+10){
-      if(obj.canBounce&&!obj.bigBounced){
-        // Strong bounce - object flies back up and is still dangerous
-        obj.bigBounced=true;
-        obj.y=groundY+10-obj.h;
-        obj.bounceVy=-obj.speed*1.2-(3+Math.random()*3);
-        obj.rotSpeed=(Math.random()-0.5)*0.2;
-        spawnParticles(obj.x+obj.w/2,groundY,'#ffcc00',12,6);
-        SoundMgr.playSE('hit');
-      } else {
-        obj.bounced=true;obj.bounceVy=-obj.speed*0.3;
-        spawnParticles(obj.x+obj.w/2,groundY,obj.color,8,4);
-        if(obj.isBoss){GS.weatherShakeFrames=5;SoundMgr.playSE('hit');}
+      Weather.applyToObject(obj);
+      obj.x=Math.max(0,Math.min(W-obj.w,obj.x));
+      // Ground collision - bounce
+      if(!obj.bounced&&obj.y+obj.h>=groundY+10){
+        if(obj.canBounce&&!obj.bigBounced){
+          obj.bigBounced=true;
+          obj.y=groundY+10-obj.h;
+          obj.bounceVy=-obj.speed*1.2-(3+Math.random()*3);
+          obj.rotSpeed=(Math.random()-0.5)*0.2;
+          spawnParticles(obj.x+obj.w/2,groundY,'#ffcc00',12,6);
+          SoundMgr.playSE('hit');
+        } else {
+          obj.bounced=true;obj.bounceVy=-obj.speed*0.3;
+          spawnParticles(obj.x+obj.w/2,groundY,obj.color,8,4);
+          if(obj.isBoss){GS.weatherShakeFrames=5;SoundMgr.playSE('hit');}
+        }
+      }
+      // Passed screen
+      if(obj.y>H+50&&!obj.bounced){
+        addScore(checkNearMiss(pxAbs,pyAbs,GS.playerWidth,GS.playerHeight,obj),obj.bossPoints||0);
+        if(obj.isBoss)Commentary.add('c_boss_dodge',2);
+        if(GS.score===1&&!GS.scoreTriggered.first){GS.scoreTriggered.first=true;Commentary.add('c_first',1);}
+        GS.fallingObjects.splice(i,1);continue;
       }
     }
-    // Passed screen
-    if(obj.y>H+50&&!obj.bounced){
-      addScore(checkNearMiss(pxAbs,pyAbs,GS.playerWidth,GS.playerHeight,obj),obj.bossPoints||0);
-      if(obj.isBoss)Commentary.add('c_boss_dodge',2);
-      if(GS.score===1&&!GS.scoreTriggered.first){GS.scoreTriggered.first=true;Commentary.add('c_first',1);}
-      GS.fallingObjects.splice(i,1);continue;
-    }
-    // Player collision
+    // Player collision (always check, including synced objects)
     if(GS.isAlive&&checkCollision(pxAbs,pyAbs,GS.playerWidth,GS.playerHeight,obj)){
       if(GS.gameMode==='timeAttack'){GS.comboCount=0;GS.comboMultiplier=1;GS.fallingObjects.splice(i,1);
         SoundMgr.playSE('hit');spawnParticles(pxAbs+GS.playerWidth/2,pyAbs+GS.playerHeight/2,'#ff3366',16,8);
@@ -1647,6 +1651,8 @@ function checkMultiEnd(){
   if(GS.multiMode==='team'){
     const aliveTeams=new Set(alive.map(([idx])=>GS.teamAssign[parseInt(idx)]||'A'));
     if(aliveTeams.size<=1)ended=true;
+  } else if(GS.multiMode==='coop'){
+    if(alive.length===0)ended=true;
   } else {
     if(alive.length<=1)ended=true;
   }
@@ -2171,6 +2177,8 @@ function startMultiGame(){
     if(GS.multiMode==='team'){
       const aliveTeams=new Set(alive.map(([idx])=>GS.teamAssign[parseInt(idx)]||'A'));
       if(aliveTeams.size<=1)gameEnded=true;
+    } else if(GS.multiMode==='coop'){
+      if(alive.length===0)gameEnded=true;
     } else {
       if(alive.length<=1)gameEnded=true;
     }
