@@ -1153,17 +1153,18 @@ function spawnBossObject(){
   },2000);
 }
 
-// ===== Wall Crush (Hidden Stage + Multi Hard) =====
+// ===== Wall Crush (Hidden Stage + Multi Hard + Score Attack) =====
 let nextWallCrush=0;
 function trySpawnWallCrush(){
   const isSecret=GS.currentStage===6;
   const isMultiHard=GS.isMulti&&GS.difficulty==='hard';
-  if(!isSecret&&!isMultiHard)return;
+  const isScoreAttack=GS.gameMode==='scoreAttack';
+  if(!isSecret&&!isMultiHard&&!isScoreAttack)return;
   if(GS.elapsed<nextWallCrush)return;
-  // Hidden: 18-30s, Multi Hard: 30-50s (less frequent)
-  nextWallCrush=GS.elapsed+(isSecret?18000+Math.random()*12000:30000+Math.random()*20000);
+  // Hidden: 18-30s, Multi Hard: 30-50s, Score Attack: 25-40s
+  nextWallCrush=GS.elapsed+(isSecret?18000+Math.random()*12000:isScoreAttack?25000+Math.random()*15000:30000+Math.random()*20000);
   // Use ratios (0-1) so all screens show same layout
-  const gapRatio=0.18; // Gap width: 18% of screen
+  const gapRatio=isScoreAttack?0.22:0.18; // Score Attack: slightly wider gap (22%)
   const gapMinR=0.1,gapMaxR=0.9-gapRatio;
   const gapXR=gapMinR+Math.random()*(gapMaxR-gapMinR);
   const warnDur=2500; // Warning duration
