@@ -2197,12 +2197,17 @@ function setupLobby(roomId){
     }
     refreshTeamUI();
   });
-  roomRef.child('status').on('value',snap=>{if(snap.val()==='playing'&&!GS.gameActive)startMultiGame();});
+  let multiStarted=false;
+  roomRef.child('status').on('value',snap=>{if(snap.val()==='playing'&&!GS.gameActive&&!multiStarted){multiStarted=true;startMultiGame();}});
   document.getElementById('btn-start-game').onclick=()=>{roomRef.child('status').set('playing');};
   document.getElementById('btn-leave-lobby').onclick=()=>{cleanupRoom(roomId,GS.playerIndex);SyncLayer.disconnect();GS.isMulti=false;GS.roomId=null;showScreen('title');};
   roomRef.child('players/'+GS.playerIndex).onDisconnect().remove();
 }
+let _multiGameStarting=false;
 function startMultiGame(){
+  if(_multiGameStarting)return;// prevent double invocation
+  _multiGameStarting=true;
+  if(GS.animationId){cancelAnimationFrame(GS.animationId);GS.animationId=null;}
   resetGameState();GS.isMulti=true;GS.cpuPlayers=[];
   showScreen('game');setupCanvas();SoundMgr.playMultiBGM();
   // Show multi rules in HUD
@@ -2256,7 +2261,8 @@ function startMultiGame(){
     if(gameEnded&&!resultShown){GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);setTimeout(()=>showResult(),500);}
   });
   showCountdown(()=>{
-    GS.gameStartTime=Date.now();GS.gameActive=true;
+    GS.gameStartTime=Date.now();GS.stageStartTime=Date.now();GS.gameActive=true;
+    _multiGameStarting=false;
     Commentary.queue=[];Commentary.add('c_start',1);gameLoop();
   });
 }
@@ -2395,7 +2401,7 @@ function cleanupRoom(roomId,playerIndex){
   });
 }
 function multiBackToTitle(){
-  cleanupCountdown();
+  cleanupCountdown();_multiGameStarting=false;
   if(GS.isMulti&&GS.roomId){
     cleanupRoom(GS.roomId,GS.playerIndex);
     SyncLayer.disconnect();GS.isMulti=false;GS.roomId=null;
