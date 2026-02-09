@@ -1135,9 +1135,11 @@ function advanceStage(){
   GS.fallingObjects=[];GS.powerUpItems=[];GS.bossWarnings=[];
   const label=STAGE_CONFIG[GS.currentStage];
   GS.stageTransitionUntil=Date.now()+2500;
-  GS.stageTransitionText='STAGE '+GS.currentStage+' - '+(currentLang==='ja'?label.labelJa:label.label);
+  const stNum=GS.currentStage>=5?(currentLang==='ja'?'ファイナルステージ':'FINAL STAGE'):'STAGE '+GS.currentStage;
+  GS.stageTransitionText=stNum+' - '+(currentLang==='ja'?label.labelJa:label.label);
   SoundMgr.playSE('stage');SoundMgr.changeBGMForStage(GS.currentStage);
-  Commentary.add(t('c_stage').replace('{n}',GS.currentStage),2);
+  const csLabel=GS.currentStage>=5?(currentLang==='ja'?'ファイナルステージ':'FINAL STAGE'):t('c_stage').replace('{n}',GS.currentStage);
+  Commentary.add(csLabel+'！',2);
 }
 
 // ===== Game Loop =====
@@ -1374,7 +1376,8 @@ function updateHUD(){
     timeEl.className='hud-time';
   } else {
     const stLabel=currentLang==='ja'?STAGE_CONFIG[GS.currentStage].labelJa:STAGE_CONFIG[GS.currentStage].label;
-    diffEl.textContent='STAGE '+GS.currentStage+' / '+stLabel;
+    const stNum=GS.currentStage>=5?(currentLang==='ja'?'ファイナルステージ':'FINAL STAGE'):'STAGE '+GS.currentStage;
+    diffEl.textContent=stNum+' / '+stLabel;
     const timeLeft=Math.ceil(GS.stageTimeRemaining||0);
     const tMin=Math.floor(timeLeft/60);const tSec=timeLeft%60;
     timeEl.textContent='⏱ '+tMin+':'+String(tSec).padStart(2,'0');
@@ -1455,7 +1458,8 @@ function showResult(){
     html+='<div class="stats">';
     html+='<div><span>SCORE</span><span>'+GS.score+'</span></div>';
     if(isScoreAtk){html+='<div><span>MODE</span><span>SCORE ATTACK</span></div>';}
-    else{html+='<div><span>STAGE</span><span>'+GS.currentStage+' / '+(currentLang==='ja'?STAGE_CONFIG[GS.currentStage].labelJa:STAGE_CONFIG[GS.currentStage].label)+'</span></div>';}
+    else{const rsNum=GS.currentStage>=5?(currentLang==='ja'?'ファイナルステージ':'FINAL STAGE'):'STAGE '+GS.currentStage;
+    html+='<div><span>STAGE</span><span>'+rsNum+' / '+(currentLang==='ja'?STAGE_CONFIG[GS.currentStage].labelJa:STAGE_CONFIG[GS.currentStage].label)+'</span></div>';}
     html+='<div><span>MAX COMBO</span><span>x'+GS.maxCombo+' ('+GS.comboCount+')</span></div>';
     html+='<div><span>TIME</span><span>'+Math.floor(GS.elapsed/1000)+'s</span></div></div>';
     if(GS.username&&!GS.isGuest){
