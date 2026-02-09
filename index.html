@@ -115,6 +115,16 @@ body{background:radial-gradient(ellipse at 50% 40%,#002a10 0%,#001208 40%,#000a0
 .error-text{color:var(--neon-red);font-size:12px;margin-top:4px;display:none}
 @media(max-width:600px){.panel{padding:15px;width:95%}.btn{padding:10px;font-size:13px}.ctrl-btn{padding:20px 24px;font-size:20px;min-height:60px}}
 @media(hover:hover) and (pointer:fine){.mobile-controls{display:none}}
+.secret-popup{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);z-index:200;display:flex;align-items:center;justify-content:center;animation:float-in 0.6s ease-out}
+.secret-popup-inner{text-align:center;border:2px solid #ff0022;box-shadow:0 0 30px rgba(255,0,34,0.5),0 0 60px rgba(255,0,34,0.2),inset 0 0 30px rgba(255,0,34,0.05);padding:40px 50px;background:rgba(20,0,0,0.95);max-width:460px;width:90%;position:relative}
+.secret-popup-inner::before,.secret-popup-inner::after{content:'';position:absolute;width:16px;height:16px;border-color:#ff0022;border-style:solid}
+.secret-popup-inner::before{top:-1px;left:-1px;border-width:3px 0 0 3px}
+.secret-popup-inner::after{bottom:-1px;right:-1px;border-width:0 3px 3px 0}
+.secret-popup h3{color:#ff0022;font-size:24px;letter-spacing:6px;margin-bottom:16px;text-shadow:0 0 20px rgba(255,0,34,0.8)}
+.secret-popup .cmd-display{font-size:32px;letter-spacing:12px;color:#ff4444;margin:20px 0;text-shadow:0 0 15px rgba(255,68,68,0.6);animation:pulse-glow 1.5s ease-in-out infinite}
+.secret-popup .cmd-hint{color:#cc8888;font-size:13px;margin-top:12px;letter-spacing:1px}
+.secret-popup .close-secret{margin-top:24px;display:inline-block;padding:10px 30px;border:1px solid #ff0022;color:#ff4444;background:transparent;font-family:inherit;font-size:14px;cursor:pointer;letter-spacing:2px;transition:all 0.2s}
+.secret-popup .close-secret:hover{background:rgba(255,0,34,0.15);box-shadow:0 0 15px rgba(255,0,34,0.4)}
 </style>
 </head>
 <body>
@@ -329,7 +339,10 @@ const i18n = {
     btn_join_room:'ルームに参加',btn_leave_lobby:'退出',
     lobby_rules_label:'ルール設定',lobby_mode_label:'対戦モード:',lobby_diff_label:'難易度:',
     lobby_rules_readonly:'※ ルール変更はルーム作成者のみ可能です',
-    stage1:'工事現場',stage2:'キッチン',stage3:'オフィス',stage4:'夜の街',stage5:'宇宙'
+    stage1:'工事現場',stage2:'キッチン',stage3:'オフィス',stage4:'夜の街',stage5:'宇宙',
+    secret_unlock:'隠しコマンドが解放された！',secret_command_label:'タイトル画面で入力せよ',
+    secret_stage:'隠しステージ',secret_stage_enter:'隠しステージへようこそ…',
+    secret_popup_title:'SECRET UNLOCKED'
   },
   en:{catchcopy:'A split-second decision determines survival.',btn_register_play:'Register & Play',btn_guest_play:'▶ Play as Guest',btn_multi:'Multiplayer (up to 4)',btn_rules:'How to Play',btn_ranking:'Rankings',difficulty_easy:'Easy',difficulty_normal:'Normal',difficulty_hard:'Hard',game_over:'GAME OVER',game_set:'GAME SET!',winner:'WINNER',score_label:'SCORE',rematch:'Rematch',back_to_title:'Back to Title',retry:'Play Again',waiting:'Waiting...',game_start:'Start Game',disconnected:' disconnected',near_miss:'NEAR MISS!',combo:'COMBO!',fever:'FEVER!',shield_break:'SHIELD BREAK!',stage_label:'STAGE',weather_rain:'Rain',weather_thunder:'Thunder',weather_storm:'Storm',bgm_on:'BGM: ON',bgm_off:'BGM: OFF',se_on:'SE: ON',se_off:'SE: OFF',
     rule_text:'<b>FALL DODGE Rules</b><br><br>• Objects fall from above<br>• Use ← → to move and dodge<br>• Shift/Space to dash (short invincible move)<br>• Hit = Game Over<br>• Dodge = Score+1, Near Miss = Bonus<br>• Consecutive dodges increase combo multiplier<br>• ★ Power-ups give temporary boosts<br>• Difficulty increases over time<br>• Background & BGM change per stage<br><br><b>Stage Mode</b><br>• Clear Stages 1-5 in order<br>• 2 min per stage (Stage 5 is 3 min)<br>• Survive the time to advance<br><br><b>🏆 Score Attack</b><br>• No time limit! Fixed high difficulty<br>• Keep dodging to rack up your score<br>• Registered users scores appear in rankings<br>• Only top 10 scores displayed<br><br><b>Power-ups</b><br>🛡️ Shield: Block 1 hit<br>⚡ Speed: 2x speed (5s)<br>🔽 Slow: Half fall speed (3s)<br>🔲 Shrink: Half hitbox (5s)<br>🔺 Enlarge: 1.8x hitbox (6s) *Debuff*<br><br><b>Multiplayer</b><br>• Up to 4 players online<br>• Last one standing wins<br>• 💀 Sabotage adds objects to others',
@@ -341,7 +354,10 @@ const i18n = {
     btn_join_room:'Join Room',btn_leave_lobby:'Leave',
     lobby_rules_label:'Rules',lobby_mode_label:'Mode:',lobby_diff_label:'Difficulty:',
     lobby_rules_readonly:'* Only the room creator can change rules',
-    stage1:'Construction',stage2:'Kitchen',stage3:'Office',stage4:'Night City',stage5:'Outer Space'
+    stage1:'Construction',stage2:'Kitchen',stage3:'Office',stage4:'Night City',stage5:'Outer Space',
+    secret_unlock:'A secret command has been unlocked!',secret_command_label:'Enter on the title screen',
+    secret_stage:'Hidden Stage',secret_stage_enter:'Welcome to the hidden stage...',
+    secret_popup_title:'SECRET UNLOCKED'
   }
 };
 let currentLang = localStorage.getItem('fd_language')||(navigator.language.startsWith('ja')?'ja':'en');
@@ -371,7 +387,7 @@ const SoundMgr = {
   },
   stopBGM(){if(this.bgm){this.bgm.pause();this.bgm.currentTime=0;}},
   changeBGMForStage(stage){
-    const urls={1:'FALL DODGE_STAGE1.mp3',2:'FALL DODGE_STAGE2.mp3',3:'FALL DODGE_STAGE3.mp3',4:'FALL DODGE_STAGE4.mp3',5:'FALL DODGE_STAGE5.mp3'};
+    const urls={1:'FALL DODGE_STAGE1.mp3',2:'FALL DODGE_STAGE2.mp3',3:'FALL DODGE_STAGE3.mp3',4:'FALL DODGE_STAGE4.mp3',5:'FALL DODGE_STAGE5.mp3',6:'FALL DODGE_STAGE5.mp3'};
     this.playBGM(urls[stage]||urls[1]);
   },
   playMultiBGM(){this.playBGM(Math.random()>0.5?'FALL DODGE_Multi1.mp3':'FALL DODGE_Multi2.mp3');},
@@ -414,7 +430,8 @@ const STAGE_CONFIG = {
   2:{gridColor:'#001a1a',accent:'#00ffff',label:'KITCHEN',labelJa:'キッチン'},
   3:{gridColor:'#1a1a00',accent:'#ffff00',label:'OFFICE',labelJa:'オフィス'},
   4:{gridColor:'#1a000a',accent:'#ff00ff',label:'NIGHT CITY',labelJa:'夜の街'},
-  5:{gridColor:'#0a001a',accent:'#b450ff',label:'OUTER SPACE',labelJa:'宇宙'}
+  5:{gridColor:'#0a001a',accent:'#b450ff',label:'OUTER SPACE',labelJa:'宇宙'},
+  6:{gridColor:'#0a0000',accent:'#ff0022',label:'???',labelJa:'???'}
 };
 function getCurrentStage(score){if(score>=300)return 5;if(score>=200)return 4;if(score>=120)return 3;if(score>=50)return 2;return 1;}
 
@@ -430,7 +447,8 @@ const STAGE_DIFFICULTY = {
   2:{fallSpeed:4, spawnInterval:450, maxObjects:12,timeLimit:120},
   3:{fallSpeed:5.5,spawnInterval:350,maxObjects:15,timeLimit:120},
   4:{fallSpeed:7, spawnInterval:250, maxObjects:20,timeLimit:120},
-  5:{fallSpeed:9, spawnInterval:180, maxObjects:25,timeLimit:180}
+  5:{fallSpeed:9, spawnInterval:180, maxObjects:25,timeLimit:180},
+  6:{fallSpeed:12,spawnInterval:120, maxObjects:35,timeLimit:240}
 };
 
 // ===== Falling Object Types =====
@@ -1057,7 +1075,7 @@ function spawnFallingObject(){
     }
   }
   // Stage-based items
-  const stageItems={1:[0,1,2],2:[6,3,9,7],3:[5,8,9],4:[4,0,1,2,3,5,6,7,8,9],5:[0,1,2,3,4,5,6,7,8,9]};
+  const stageItems={1:[0,1,2],2:[6,3,9,7],3:[5,8,9],4:[4,0,1,2,3,5,6,7,8,9],5:[0,1,2,3,4,5,6,7,8,9],6:[0,1,2,3,4,5,6,7,8,9]};
   const pool=stageItems[GS.currentStage]||stageItems[1];
   const typeIdx=pool[Math.floor(Math.random()*pool.length)];
   const otype=OBJ_TYPES[typeIdx];
@@ -1071,7 +1089,7 @@ function spawnFallingObject(){
 
 function spawnBossObject(){
   if(GS.elapsed<GS.nextBossTime)return;
-  GS.nextBossTime=GS.elapsed+30000;
+  GS.nextBossTime=GS.elapsed+(GS.currentStage===6?15000:30000);
   SoundMgr.playSE('boss_warn');Commentary.add('c_boss',3);
   const btype=BOSS_TYPES[Math.floor(Math.random()*BOSS_TYPES.length)];
   const bw=W*0.33,bh=bw*btype.h/btype.w;
@@ -1122,7 +1140,8 @@ function checkStageTransition(){
   GS.stageTimeRemaining=Math.max(0,sd.timeLimit-stageElapsed);
   // Stage clear!
   if(stageElapsed>=sd.timeLimit){
-    if(GS.currentStage>=5){endGame(false,true);return;}// All stages cleared!
+    if(GS.currentStage>=6){endGame(false,true);return;}// Secret stage cleared!
+    if(GS.currentStage>=5&&!GS.isSecretStage){endGame(false,true);return;}// All stages cleared!
     advanceStage();
   }
 }
@@ -1135,10 +1154,10 @@ function advanceStage(){
   GS.fallingObjects=[];GS.powerUpItems=[];GS.bossWarnings=[];
   const label=STAGE_CONFIG[GS.currentStage];
   GS.stageTransitionUntil=Date.now()+2500;
-  const stNum=GS.currentStage>=5?(currentLang==='ja'?'ファイナルステージ':'FINAL STAGE'):'STAGE '+GS.currentStage;
+  const stNum=GS.currentStage===6?(currentLang==='ja'?'隠しステージ':'HIDDEN STAGE'):GS.currentStage>=5?(currentLang==='ja'?'ファイナルステージ':'FINAL STAGE'):'STAGE '+GS.currentStage;
   GS.stageTransitionText=stNum+' - '+(currentLang==='ja'?label.labelJa:label.label);
   SoundMgr.playSE('stage');SoundMgr.changeBGMForStage(GS.currentStage);
-  const csLabel=GS.currentStage>=5?(currentLang==='ja'?'ファイナルステージ':'FINAL STAGE'):t('c_stage').replace('{n}',GS.currentStage);
+  const csLabel=GS.currentStage===6?(currentLang==='ja'?'隠しステージ':'HIDDEN STAGE'):GS.currentStage>=5?(currentLang==='ja'?'ファイナルステージ':'FINAL STAGE'):t('c_stage').replace('{n}',GS.currentStage);
   Commentary.add(csLabel+'！',2);
 }
 
@@ -1275,13 +1294,17 @@ function render(){
   if(GS.weatherShakeFrames>0){ctx.translate((Math.random()-0.5)*6,(Math.random()-0.5)*6);GS.weatherShakeFrames--;}
   // Background grid
   const sc=STAGE_CONFIG[GS.currentStage];
-  ctx.fillStyle=sc.gridColor;ctx.fillRect(0,0,W,H);
-  ctx.strokeStyle=sc.accent+'30';ctx.lineWidth=0.5;
-  for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
-  for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
-  // Ground line
-  ctx.strokeStyle=sc.accent+'60';ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(0,groundY+15);ctx.lineTo(W,groundY+15);ctx.stroke();
+  if(GS.currentStage===6){
+    SecretStage.drawHorrorBG(ctx,W,H);
+  } else {
+    ctx.fillStyle=sc.gridColor;ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle=sc.accent+'30';ctx.lineWidth=0.5;
+    for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+    for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+    // Ground line
+    ctx.strokeStyle=sc.accent+'60';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(0,groundY+15);ctx.lineTo(W,groundY+15);ctx.stroke();
+  }
   // Weather
   Weather.drawRain(ctx);Weather.drawFlash(ctx);
   // Boss warnings
@@ -1376,7 +1399,7 @@ function updateHUD(){
     timeEl.className='hud-time';
   } else {
     const stLabel=currentLang==='ja'?STAGE_CONFIG[GS.currentStage].labelJa:STAGE_CONFIG[GS.currentStage].label;
-    const stNum=GS.currentStage>=5?(currentLang==='ja'?'ファイナルステージ':'FINAL STAGE'):'STAGE '+GS.currentStage;
+    const stNum=GS.currentStage===6?(currentLang==='ja'?'隠しステージ':'HIDDEN STAGE'):GS.currentStage>=5?(currentLang==='ja'?'ファイナルステージ':'FINAL STAGE'):'STAGE '+GS.currentStage;
     diffEl.textContent=stNum+' / '+stLabel;
     const timeLeft=Math.ceil(GS.stageTimeRemaining||0);
     const tMin=Math.floor(timeLeft/60);const tSec=timeLeft%60;
@@ -1452,13 +1475,14 @@ function showResult(){
     },100);
   } else {
     const isScoreAtk=GS.gameMode==='scoreAttack';
+    const isSecretClear=GS.isSecretStage&&GS.allCleared;
     SoundMgr.playSE(GS.allCleared?'win':'lose');
-    let html='<h2>'+(GS.allCleared?'ALL STAGES CLEARED!':(isScoreAtk?'SCORE ATTACK':t('game_over')))+'</h2>';
+    let html='<h2>'+(isSecretClear?'SECRET STAGE CLEARED!':GS.allCleared?'ALL STAGES CLEARED!':(isScoreAtk?'SCORE ATTACK':t('game_over')))+'</h2>';
     html+='<canvas id="resultCharCanvas" width="80" height="80" style="margin:0 auto;display:block"></canvas>';
     html+='<div class="stats">';
     html+='<div><span>SCORE</span><span>'+GS.score+'</span></div>';
     if(isScoreAtk){html+='<div><span>MODE</span><span>SCORE ATTACK</span></div>';}
-    else{const rsNum=GS.currentStage>=5?(currentLang==='ja'?'ファイナルステージ':'FINAL STAGE'):'STAGE '+GS.currentStage;
+    else{const rsNum=GS.currentStage===6?(currentLang==='ja'?'隠しステージ':'HIDDEN STAGE'):GS.currentStage>=5?(currentLang==='ja'?'ファイナルステージ':'FINAL STAGE'):'STAGE '+GS.currentStage;
     html+='<div><span>STAGE</span><span>'+rsNum+' / '+(currentLang==='ja'?STAGE_CONFIG[GS.currentStage].labelJa:STAGE_CONFIG[GS.currentStage].label)+'</span></div>';}
     html+='<div><span>MAX COMBO</span><span>x'+GS.maxCombo+' ('+GS.comboCount+')</span></div>';
     html+='<div><span>TIME</span><span>'+Math.floor(GS.elapsed/1000)+'s</span></div></div>';
@@ -1480,6 +1504,10 @@ function showResult(){
       const rc=document.getElementById('resultCharCanvas');
       if(rc){const rctx=rc.getContext('2d');drawStickFigure(rctx,40,50,PLAYER_COLORS[GS.playerIndex].hex,GS.allCleared?'win':'dead',1.2,1);}
     },100);
+    // Show secret command popup on Final Stage clear (stage 5, not secret stage)
+    if(GS.allCleared&&GS.currentStage>=5&&!GS.isSecretStage&&!SecretStage.hasUnlocked()){
+      setTimeout(()=>SecretStage.showUnlockPopup(),1500);
+    }
   }
 }
 function getSuffix(n){return n===1?'st':n===2?'nd':n===3?'rd':'th';}
@@ -1527,7 +1555,7 @@ function resetGameState(){
     fallingObjects:[],powerUpItems:[],particles:[],floatTexts:[],bossWarnings:[],
     difficultyFrozen:false,lastSpawnTime:0,nextBossTime:30000,weatherNextChange:15000,
     weatherShakeFrames:0,weatherFlash:0,stageTransitionUntil:0,timeRemaining:60000,stageTimeRemaining:120,
-    comboTriggered:{},scoreTriggered:{},timeTriggered:{}});
+    comboTriggered:{},scoreTriggered:{},timeTriggered:{},isSecretStage:false});
   GS.reverse=GS.gameMode==='reverse';GS.stageStartTime=Date.now();
   const sd=STAGE_DIFFICULTY[1];GS.currentFallSpeed=sd.fallSpeed;GS.currentSpawnInterval=sd.spawnInterval;
   // Hide multi-rule HUD when not multi
@@ -1558,11 +1586,12 @@ function quitGame(){
 // ===== Retry Same Stage =====
 function retrySameStage(){
   const stage=GS.lastDeathStage||1;
+  const wasSecret=GS.isSecretStage;
   const savedCpuSetup=GS.lastCpuSetup||[];
   resetGameState();
-  GS.gameMode='normal';GS.difficulty='normal';
+  GS.gameMode='normal';GS.difficulty=wasSecret?'hard':'normal';
   GS.isMulti=false;GS.isHost=true;
-  GS.currentStage=stage;
+  GS.currentStage=stage;GS.isSecretStage=wasSecret;
   const sd=STAGE_DIFFICULTY[stage];
   if(sd){GS.currentFallSpeed=sd.fallSpeed;GS.currentSpawnInterval=sd.spawnInterval;}
   GS.cpuPlayers=[];
@@ -2197,6 +2226,131 @@ function drawTitleChars(){
 }
 function stopTitleAnim(){if(titleAnimId){cancelAnimationFrame(titleAnimId);titleAnimId=null;}}
 
+// ===== Secret Stage System =====
+const SecretStage = {
+  COMMAND:['ArrowLeft','ArrowLeft','ArrowUp','ArrowUp','ArrowRight','ArrowRight','ArrowDown','ArrowDown'],
+  inputBuffer:[],
+  inputTimeout:null,
+  hasUnlocked(){return localStorage.getItem('fd_final_cleared')==='true';},
+  setUnlocked(){localStorage.setItem('fd_final_cleared','true');},
+  showUnlockPopup(){
+    this.setUnlocked();
+    const div=document.createElement('div');div.className='secret-popup';div.id='secret-popup';
+    div.innerHTML='<div class="secret-popup-inner">'
+      +'<h3>'+t('secret_popup_title')+'</h3>'
+      +'<div style="color:#ff8888;font-size:14px;margin-bottom:10px">'+t('secret_unlock')+'</div>'
+      +'<div class="cmd-display">←←↑↑→→↓↓</div>'
+      +'<div class="cmd-hint">'+t('secret_command_label')+'</div>'
+      +'<button class="close-secret" onclick="document.getElementById(\'secret-popup\').remove()">OK</button>'
+      +'</div>';
+    document.body.appendChild(div);
+    SoundMgr.playSE('stage');
+  },
+  listenOnTitle(){
+    document.addEventListener('keydown',e=>{
+      if(GS.currentScreen!=='title')return;
+      this.inputBuffer.push(e.key);
+      if(this.inputBuffer.length>this.COMMAND.length)this.inputBuffer.shift();
+      clearTimeout(this.inputTimeout);
+      this.inputTimeout=setTimeout(()=>{this.inputBuffer=[];},2000);
+      if(this.inputBuffer.length===this.COMMAND.length&&this.inputBuffer.every((k,i)=>k===this.COMMAND[i])){
+        this.inputBuffer=[];
+        if(!this.hasUnlocked()){SoundMgr.playSE('error');return;}
+        this.startHiddenStage();
+      }
+    });
+  },
+  startHiddenStage(){
+    SoundMgr.playSE('stage');
+    resetGameState();
+    GS.gameMode='normal';GS.difficulty='hard';
+    GS.isMulti=false;GS.isHost=true;
+    GS.currentStage=6;GS.cpuPlayers=[];GS.isSecretStage=true;
+    const sd=STAGE_DIFFICULTY[6];
+    GS.currentFallSpeed=sd.fallSpeed;GS.currentSpawnInterval=sd.spawnInterval;
+    showScreen('game');setupCanvas();
+    const hpEl=document.getElementById('hud-players');hpEl.style.display='none';
+    SoundMgr.changeBGMForStage(6);
+    showCountdown(()=>{
+      GS.gameStartTime=Date.now();GS.stageStartTime=Date.now();GS.gameActive=true;
+      Commentary.queue=[];Commentary.add(t('secret_stage_enter'),2);gameLoop();
+    });
+  },
+  // Horror background rendering
+  drawHorrorBG(ctx,W,H){
+    // Deep blood-red gradient background
+    const grad=ctx.createRadialGradient(W/2,H*0.3,0,W/2,H*0.5,Math.max(W,H));
+    grad.addColorStop(0,'#1a0000');grad.addColorStop(0.3,'#0f0000');grad.addColorStop(0.6,'#080000');grad.addColorStop(1,'#020000');
+    ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+    // Pulsating red vignette
+    const pulse=0.15+0.08*Math.sin(Date.now()/800);
+    const vig=ctx.createRadialGradient(W/2,H/2,W*0.15,W/2,H/2,W*0.8);
+    vig.addColorStop(0,'rgba(0,0,0,0)');vig.addColorStop(0.6,'rgba(0,0,0,0)');vig.addColorStop(1,'rgba('+Math.floor(pulse*255)+',0,0,'+pulse+')');
+    ctx.fillStyle=vig;ctx.fillRect(0,0,W,H);
+    // Distorted grid lines - warped
+    const t=Date.now()/1500;
+    ctx.strokeStyle='rgba(255,0,30,0.08)';ctx.lineWidth=0.5;
+    for(let x=0;x<W;x+=40){
+      ctx.beginPath();
+      for(let y=0;y<H;y+=4){
+        const warp=Math.sin(y/60+t+x/100)*3;
+        if(y===0)ctx.moveTo(x+warp,y);else ctx.lineTo(x+warp,y);
+      }
+      ctx.stroke();
+    }
+    for(let y=0;y<H;y+=40){
+      ctx.beginPath();
+      for(let x=0;x<W;x+=4){
+        const warp=Math.sin(x/60+t+y/100)*3;
+        if(x===0)ctx.moveTo(x,y+warp);else ctx.lineTo(x,y+warp);
+      }
+      ctx.stroke();
+    }
+    // Dripping blood effects (static positions, animated drip)
+    const seed=42;
+    for(let i=0;i<8;i++){
+      const bx=((seed*17+i*73)%100)/100*W;
+      const dripLen=30+((seed*31+i*47)%60);
+      const dripY=(Date.now()/40+i*200)%(H+dripLen+100)-dripLen;
+      const grad2=ctx.createLinearGradient(bx,dripY,bx,dripY+dripLen);
+      grad2.addColorStop(0,'rgba(180,0,0,0)');grad2.addColorStop(0.3,'rgba(180,0,0,0.25)');grad2.addColorStop(1,'rgba(100,0,0,0)');
+      ctx.fillStyle=grad2;ctx.fillRect(bx-1,dripY,3,dripLen);
+    }
+    // Floating eyes that appear/disappear
+    const eyeT=Date.now()/1000;
+    for(let i=0;i<5;i++){
+      const ex=((seed*53+i*97)%100)/100*W;
+      const ey=((seed*29+i*61)%70)/100*H+H*0.1;
+      const blink=Math.sin(eyeT*0.5+i*1.7);
+      if(blink>0.3){
+        const alpha=Math.min(1,(blink-0.3)*1.4)*0.4;
+        ctx.fillStyle='rgba(255,0,0,'+alpha+')';
+        ctx.beginPath();ctx.ellipse(ex-6,ey,4,2+blink*2,0,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.ellipse(ex+6,ey,4,2+blink*2,0,0,Math.PI*2);ctx.fill();
+        // Pupil
+        ctx.fillStyle='rgba(255,255,200,'+(alpha*0.8)+')';
+        ctx.beginPath();ctx.arc(ex-6,ey,1.5,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.arc(ex+6,ey,1.5,0,Math.PI*2);ctx.fill();
+      }
+    }
+    // Random screen flicker/glitch effect
+    if(Math.random()<0.02){
+      ctx.fillStyle='rgba(255,0,0,0.03)';ctx.fillRect(0,0,W,H);
+      const glitchY=Math.random()*H;
+      const glitchH=5+Math.random()*15;
+      ctx.fillStyle='rgba(255,0,30,0.08)';
+      ctx.fillRect(0,glitchY,W,glitchH);
+    }
+    // Ominous fog at bottom
+    const fogGrad=ctx.createLinearGradient(0,H*0.7,0,H);
+    fogGrad.addColorStop(0,'rgba(30,0,0,0)');fogGrad.addColorStop(1,'rgba(30,0,0,0.3)');
+    ctx.fillStyle=fogGrad;ctx.fillRect(0,H*0.7,W,H*0.3);
+    // Ground line - sinister red
+    ctx.strokeStyle='rgba(255,0,30,0.4)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(0,groundY+15);ctx.lineTo(W,groundY+15);ctx.stroke();
+  }
+};
+
 // ===== Init =====
 function init(){
   GS.deviceId=getDeviceId();
@@ -2211,7 +2365,7 @@ function init(){
     if(rm){document.getElementById('room-input').value=rm;setupMultiModal();showModal('multi-modal');}};
   setTimeout(goTitle,2500);
   document.getElementById('splash-screen').addEventListener('click',goTitle);
-  setupInputs();setupUI();
+  setupInputs();setupUI();SecretStage.listenOnTitle();
   // Resume BGM on first user interaction (browser autoplay policy)
   const unlockAudio=()=>{SoundMgr.resumePendingBGM();document.removeEventListener('click',unlockAudio);document.removeEventListener('touchstart',unlockAudio);document.removeEventListener('keydown',unlockAudio);};
   document.addEventListener('click',unlockAudio);document.addEventListener('touchstart',unlockAudio);document.addEventListener('keydown',unlockAudio);
