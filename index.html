@@ -99,9 +99,7 @@ body{background:radial-gradient(ellipse at 50% 40%,#002a10 0%,#001208 40%,#000a0
 .result-box .ranking-list div{display:flex;justify-content:space-between;padding:4px 8px;border-bottom:1px solid rgba(0,255,65,0.1)}
 .result-box .ranking-list div:nth-child(1){color:var(--neon-gold)}
 .result-btns{display:flex;flex-direction:column;gap:8px;margin-top:15px}
-.result-btns .btn{white-space:nowrap;font-size:14px}
-.result-btns .two-col{display:flex;gap:8px}
-.result-btns .two-col .btn{flex:1}
+.result-btns .btn{white-space:nowrap}
 .achievement-popup{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(0,20,10,0.95);border:1px solid var(--neon-gold);color:var(--neon-gold);padding:10px 20px;font-size:13px;z-index:60;animation:float-in 0.5s ease-out}
 .ranking-tabs{display:flex;gap:4px;margin-bottom:12px}
 .ranking-tabs .tab{padding:6px 12px;border:1px solid var(--neon-green-dim);color:var(--text-dim);cursor:pointer;font-size:12px;font-family:inherit}
@@ -1348,11 +1346,8 @@ function showResult(){
       html+='<div class="result-btns"><button class="btn" onclick="startScoreAttack()">'+t('retry')+'</button>';
       html+='<button class="btn btn-sub" onclick="backToTitle()">'+t('back_to_title')+'</button></div>';
     } else {
-      const retryLabel=currentLang==='ja'?'🔄 ステージ'+GS.currentStage+' リトライ':'🔄 Retry Stage '+GS.currentStage;
-      const restartLabel=currentLang==='ja'?'↩ ステージ1から':'↩ Stage 1';
       html+='<div class="result-btns">';
-      html+='<div class="two-col"><button class="btn" onclick="retrySameStage()">'+retryLabel+'</button>';
-      html+='<button class="btn" onclick="startSoloGame()">'+restartLabel+'</button></div>';
+      html+='<button class="btn" onclick="retrySameStage()" style="font-size:16px;padding:14px;background:rgba(0,255,65,0.06)">▶ '+(currentLang==='ja'?'リトライ':'Retry')+'</button>';
       html+='<button class="btn btn-sub" onclick="backToTitle()">'+t('back_to_title')+'</button></div>';
     }
     box.innerHTML=html;
