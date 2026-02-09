@@ -127,7 +127,6 @@ body{background:var(--bg-dark);color:var(--text-primary);font-family:'Courier Ne
 <div style="height:60px"></div>
 <div class="footer">
 <div class="footer-btn active-toggle" id="toggle-bgm" title="BGM ON/OFF">🎵</div>
-<div class="footer-btn active-toggle" id="toggle-se" title="SE ON/OFF">🔊</div>
 <div class="footer-btn active-toggle" id="toggle-lang" title="JP/EN">🌐</div>
 </div>
 </div>
@@ -1373,7 +1372,7 @@ function setupUI(){
   document.getElementById('btn-rules').addEventListener('click',()=>{SoundMgr.playSE('click');document.getElementById('rule-content').innerHTML=t('rule_text');showModal('rule-modal');});
   document.getElementById('btn-ranking').addEventListener('click',()=>{SoundMgr.playSE('click');loadRankings();showModal('ranking-modal');});
   document.getElementById('toggle-bgm').addEventListener('click',function(){SoundMgr.toggleBGM();this.textContent=SoundMgr.bgmEnabled?'🎵':'🎵';this.classList.toggle('active-toggle',SoundMgr.bgmEnabled);this.classList.toggle('off',!SoundMgr.bgmEnabled);});
-  document.getElementById('toggle-se').addEventListener('click',function(){SoundMgr.toggleSE();this.textContent=SoundMgr.seEnabled?'🔊':'🔇';this.classList.toggle('active-toggle',SoundMgr.seEnabled);this.classList.toggle('off',!SoundMgr.seEnabled);});
+
   document.getElementById('toggle-lang').addEventListener('click',function(){switchLanguage(currentLang==='ja'?'en':'ja');this.textContent=currentLang==='ja'?'🌐':'🌐';});
   document.getElementById('btn-join-room').addEventListener('click',()=>{SoundMgr.playSE('click');joinRoom();});
   document.getElementById('btn-start-solo').addEventListener('click',()=>{SoundMgr.playSE('click');startSoloGame();});
