@@ -122,13 +122,12 @@ body{background:var(--bg-dark);color:var(--text-primary);font-family:'Courier Ne
 <div class="spacer"></div>
 <button class="btn" id="btn-multi" data-i18n="btn_multi">マルチプレイ（最大4人）</button>
 <div class="spacer"></div>
+<button class="btn" id="btn-score-attack" style="background:rgba(255,200,0,0.1);border-color:var(--neon-gold)">🏆 スコアアタック</button>
+<div class="spacer"></div>
 <button class="btn btn-sub" id="btn-rules" data-i18n="btn_rules">ルール説明を見る</button>
 <button class="btn btn-sub" id="btn-ranking" data-i18n="btn_ranking">ランキングを見る</button>
 </div>
 <div style="height:60px"></div>
-<div class="footer">
-<div class="footer-btn active-toggle" id="toggle-bgm" title="BGM ON/OFF">🎵</div>
-<div class="footer-btn active-toggle" id="toggle-lang" title="JP/EN">🌐</div>
 </div>
 </div>
 
@@ -246,6 +245,12 @@ body{background:var(--bg-dark);color:var(--text-primary);font-family:'Courier Ne
 </div>
 </div>
 
+<!-- Global Footer (always visible) -->
+<div class="footer">
+<div class="footer-btn active-toggle" id="toggle-bgm" title="BGM ON/OFF">🎵</div>
+<div class="footer-btn active-toggle" id="toggle-lang" title="JP/EN">🌐</div>
+</div>
+
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
@@ -269,14 +274,14 @@ const database = firebase.database();
 // ===== i18n =====
 const i18n = {
   ja:{catchcopy:'一瞬の判断が、生存を決める',btn_register_play:'登録してゲームを始める',btn_guest_play:'▶ 登録しないでゲームを始める',btn_multi:'マルチプレイ（最大4人）',btn_rules:'ルール説明を見る',btn_ranking:'ランキングを見る',difficulty_easy:'簡単',difficulty_normal:'普通',difficulty_hard:'難しい',game_over:'GAME OVER',game_set:'GAME SET!',winner:'勝者',score_label:'スコア',rematch:'再戦',back_to_title:'タイトルに戻る',retry:'もう一度プレイ',waiting:'待機中...',game_start:'ゲーム開始',disconnected:'さんが退席しました',near_miss:'NEAR MISS!',combo:'COMBO!',fever:'FEVER!',shield_break:'SHIELD BREAK!',stage_label:'ステージ',weather_rain:'雨',weather_thunder:'雷',weather_storm:'嵐',bgm_on:'BGM: ON',bgm_off:'BGM: OFF',se_on:'SE: ON',se_off:'SE: OFF',
-    rule_text:'<b>FALL DODGE ルール</b><br><br>・上空から落下物（日用品・工具）が降ってくる<br>・← → キーで左右移動し、落下物を回避<br>・Shift / Space でダッシュ（短距離無敵移動）<br>・落下物に当たったらゲームオーバー<br>・回避するとスコア+1、ニアミスでボーナス<br>・連続回避でコンボ倍率アップ<br>・★パワーアップアイテムで一時的に強化<br>・時間経過で難易度上昇<br>・ステージごとに背景とBGMが変化<br><br><b>パワーアップ</b><br>🛡️ シールド: 被弾1回無効<br>⚡ スピード: 移動速度2倍(5秒)<br>🔽 スロー: 落下速度半減(3秒)<br>🔲 縮小: 当たり判定半減(5秒)<br><br><b>マルチプレイ</b><br>・最大4人同時対戦<br>・最後まで生き残った人が勝利<br>・💀妨害アイテムで他プレイヤーに追加落下物',
+    rule_text:'<b>FALL DODGE ルール</b><br><br>・上空から落下物（日用品・工具）が降ってくる<br>・← → キーで左右移動し、落下物を回避<br>・Shift / Space でダッシュ（短距離無敵移動）<br>・落下物に当たったらゲームオーバー<br>・回避するとスコア+1、ニアミスでボーナス<br>・連続回避でコンボ倍率アップ<br>・★パワーアップアイテムで一時的に強化<br>・時間経過で難易度上昇<br>・ステージごとに背景とBGMが変化<br><br><b>ステージモード</b><br>・ステージ1〜5を順番にクリア<br>・各ステージ制限時間2分（ステージ5は3分）<br>・時間内に生き残ればステージクリア<br><br><b>🏆 スコアアタック</b><br>・時間制限なし！高難易度固定でスコアを競う<br>・やられるまでひたすらスコアを稼ぐ<br>・登録ユーザーのスコアはランキングに反映<br>・上位TOP10のみ表示<br><br><b>パワーアップ</b><br>🛡️ シールド: 被弾1回無効<br>⚡ スピード: 移動速度2倍(5秒)<br>🔽 スロー: 落下速度半減(3秒)<br>🔲 縮小: 当たり判定半減(5秒)<br><br><b>マルチプレイ</b><br>・最大4人同時対戦<br>・最後まで生き残った人が勝利<br>・💀妨害アイテムで他プレイヤーに追加落下物',
     c_start:'ゲームスタート！生き延びろ！',c_first:'最初の回避成功！いい滑り出しだ',c_combo2:'コンボ発動！この調子だ',c_combo5:'フィーバー突入！止まらない！',c_combo10:'MAX!! 神回避の領域だ！',c_nearmiss:'危ない！紙一重だった！',c_shield:'シールドGET！保険をかけた',c_shield_break:'シールド消滅！残りは腕だけだ',c_boss:'巨大落下物接近！気をつけろ！',c_boss_dodge:'ナイス！巨大物を回避した！',c_stage:'ステージ{n}突入！',c_score100:'100回避達成！まだまだ行ける！',c_1min:'1分経過！タフな生存者だ',c_2min:'2分経過！もはや伝説級だ',c_pout:'P{n}が脱落！残り{r}人の戦い！',c_final:'一騎打ち！最後の勝負だ！',c_storm:'嵐が来た！落下物が斜めに飛ぶぞ',
     mode_normal:'ノーマル',mode_survival:'サバイバル',mode_timeAttack:'タイムアタック',mode_bossRush:'ボスラッシュ',mode_reverse:'リバース',mode_coop:'協力モード',
     multi_individual:'個人戦',multi_team:'チーム戦',multi_coop:'協力',
     stage1:'工事現場',stage2:'キッチン',stage3:'オフィス',stage4:'夜の街',stage5:'宇宙'
   },
   en:{catchcopy:'A split-second decision determines survival.',btn_register_play:'Register & Play',btn_guest_play:'▶ Play as Guest',btn_multi:'Multiplayer (up to 4)',btn_rules:'How to Play',btn_ranking:'Rankings',difficulty_easy:'Easy',difficulty_normal:'Normal',difficulty_hard:'Hard',game_over:'GAME OVER',game_set:'GAME SET!',winner:'WINNER',score_label:'SCORE',rematch:'Rematch',back_to_title:'Back to Title',retry:'Play Again',waiting:'Waiting...',game_start:'Start Game',disconnected:' disconnected',near_miss:'NEAR MISS!',combo:'COMBO!',fever:'FEVER!',shield_break:'SHIELD BREAK!',stage_label:'STAGE',weather_rain:'Rain',weather_thunder:'Thunder',weather_storm:'Storm',bgm_on:'BGM: ON',bgm_off:'BGM: OFF',se_on:'SE: ON',se_off:'SE: OFF',
-    rule_text:'<b>FALL DODGE Rules</b><br><br>• Objects fall from above<br>• Use ← → to move and dodge<br>• Shift/Space to dash (short invincible move)<br>• Hit = Game Over<br>• Dodge = Score+1, Near Miss = Bonus<br>• Consecutive dodges increase combo multiplier<br>• ★ Power-ups give temporary boosts<br>• Difficulty increases over time<br>• Background & BGM change per stage<br><br><b>Power-ups</b><br>🛡️ Shield: Block 1 hit<br>⚡ Speed: 2x speed (5s)<br>🔽 Slow: Half fall speed (3s)<br>🔲 Shrink: Half hitbox (5s)<br><br><b>Multiplayer</b><br>• Up to 4 players online<br>• Last one standing wins<br>• 💀 Sabotage adds objects to others',
+    rule_text:'<b>FALL DODGE Rules</b><br><br>• Objects fall from above<br>• Use ← → to move and dodge<br>• Shift/Space to dash (short invincible move)<br>• Hit = Game Over<br>• Dodge = Score+1, Near Miss = Bonus<br>• Consecutive dodges increase combo multiplier<br>• ★ Power-ups give temporary boosts<br>• Difficulty increases over time<br>• Background & BGM change per stage<br><br><b>Stage Mode</b><br>• Clear Stages 1-5 in order<br>• 2 min per stage (Stage 5 is 3 min)<br>• Survive the time to advance<br><br><b>🏆 Score Attack</b><br>• No time limit! Fixed high difficulty<br>• Keep dodging to rack up your score<br>• Registered users scores appear in rankings<br>• Only top 10 scores displayed<br><br><b>Power-ups</b><br>🛡️ Shield: Block 1 hit<br>⚡ Speed: 2x speed (5s)<br>🔽 Slow: Half fall speed (3s)<br>🔲 Shrink: Half hitbox (5s)<br><br><b>Multiplayer</b><br>• Up to 4 players online<br>• Last one standing wins<br>• 💀 Sabotage adds objects to others',
     c_start:'Game start! Survive!',c_first:'First dodge! Good start!',c_combo2:'Combo activated! Keep it up!',c_combo5:'FEVER mode! Unstoppable!',c_combo10:'MAX!! Godlike dodging!',c_nearmiss:'Close call! That was tight!',c_shield:'Shield acquired! Safety net!',c_shield_break:'Shield gone! Skill only now!',c_boss:'BOSS incoming! Watch out!',c_boss_dodge:'Nice! Boss dodged!',c_stage:'Stage {n}!',c_score100:'100 dodges! Still going!',c_1min:'1 minute survived! Tough!',c_2min:'2 minutes! Legendary!',c_pout:'P{n} is out! {r} remain!',c_final:'1v1! Final showdown!',c_storm:'Storm! Objects flying sideways!',
     mode_normal:'Normal',mode_survival:'Survival',mode_timeAttack:'Time Attack',mode_bossRush:'Boss Rush',mode_reverse:'Reverse',mode_coop:'Co-op',
     multi_individual:'Individual',multi_team:'Team',multi_coop:'Co-op',
@@ -767,14 +772,27 @@ const Commentary = {
 const CPUBrain = {
   decide(cpu,objects,powerUps,level){
     if(level==='rookie'){
-      const near=objects.filter(o=>o.y<groundY&&o.y>groundY-120&&Math.abs(o.x+o.w/2-cpu.x)<40);
-      if(near.length===0)return Math.random()<0.3?'left':Math.random()<0.6?'right':'stop';
+      // Rookie: reacts to nearby threats, sometimes wanders randomly
+      const near=objects.filter(o=>!o.bounced&&o.y<groundY&&o.y>groundY-250&&Math.abs(o.x+o.w/2-cpu.x)<50);
+      if(near.length===0){
+        // Wander toward center occasionally
+        if(Math.random()<0.3)return cpu.x<W*0.3?'right':cpu.x>W*0.7?'left':'stop';
+        return 'stop';
+      }
       const n=near.reduce((a,b)=>a.y>b.y?a:b);
-      return Math.random()<0.6?((n.x+n.w/2)>cpu.x?'left':'right'):'stop';
+      // 80% chance to dodge correctly
+      if(Math.random()<0.8)return (n.x+n.w/2)>cpu.x?'left':'right';
+      return 'stop';
     }
     if(level==='normal'){
-      const threats=objects.filter(o=>o.y<groundY&&o.y>groundY-200&&Math.abs(o.x+o.w/2-cpu.x)<60);
-      if(threats.length===0)return 'stop';
+      // Normal: reacts to wider threat range, considers multiple threats
+      const threats=objects.filter(o=>!o.bounced&&o.y<groundY&&o.y>groundY-350&&Math.abs(o.x+o.w/2-cpu.x)<80);
+      if(threats.length===0){
+        // Patrol toward center for safety
+        if(cpu.x<W*0.2)return 'right';
+        if(cpu.x>W*0.8)return 'left';
+        return 'stop';
+      }
       const nearest=threats.reduce((a,b)=>a.y>b.y?a:b);
       return (nearest.x+nearest.w/2)>cpu.x?'left':'right';
     }
@@ -847,10 +865,13 @@ function spawnFallingObject(){
   const now=Date.now();
   if(now-GS.lastSpawnTime<GS.currentSpawnInterval)return;
   const sd=STAGE_DIFFICULTY[GS.currentStage]||STAGE_DIFFICULTY[1];
-  const stageElapsed=(Date.now()-GS.stageStartTime)/1000;
-  const timeLeft=sd.timeLimit-stageElapsed;
-  const maxBoost=timeLeft<=30?Math.floor((1-timeLeft/30)*10):0;
-  if(GS.fallingObjects.length>=sd.maxObjects+maxBoost)return;
+  let maxObj=GS.gameMode==='scoreAttack'?SCORE_ATTACK_DIFF.maxObjects:sd.maxObjects;
+  if(GS.gameMode!=='scoreAttack'){
+    const stageElapsed=(Date.now()-GS.stageStartTime)/1000;
+    const timeLeft=sd.timeLimit-stageElapsed;
+    if(timeLeft<=30)maxObj+=Math.floor((1-timeLeft/30)*10);
+  }
+  if(GS.fallingObjects.length>=maxObj)return;
   GS.lastSpawnTime=now;
   // Power-up chance
   const puRoll=Math.random();let puCum=0;
@@ -894,6 +915,15 @@ function spawnBossObject(){
 
 // ===== Difficulty Update (stage-based + time ramp) =====
 function updateDifficulty(){
+  if(GS.gameMode==='scoreAttack'){
+    // Score Attack: fixed high difficulty, very slow gradual ramp over time
+    const elapsed=(Date.now()-GS.gameStartTime)/1000;
+    const ramp=Math.min(1,elapsed/600);// maxes out at 10 minutes
+    GS.currentFallSpeed=SCORE_ATTACK_DIFF.fallSpeed*(1+ramp*0.8);
+    GS.currentSpawnInterval=Math.max(80,SCORE_ATTACK_DIFF.spawnInterval*(1-ramp*0.5));
+    if(GS.slowMotion)GS.currentFallSpeed*=0.5;
+    return;
+  }
   const sd=STAGE_DIFFICULTY[GS.currentStage];if(!sd)return;
   const stageElapsed=(Date.now()-GS.stageStartTime)/1000;
   const progress=Math.min(1,stageElapsed/sd.timeLimit);
@@ -913,6 +943,7 @@ function updateDifficulty(){
 
 // ===== Stage Transition (time-based) =====
 function checkStageTransition(){
+  if(GS.gameMode==='scoreAttack')return;// no time limit in score attack
   const sd=STAGE_DIFFICULTY[GS.currentStage];
   if(!sd)return;
   const stageElapsed=(Date.now()-GS.stageStartTime)/1000;
@@ -953,16 +984,19 @@ function gameLoop(){
   const pxStep=spd/W*100;
   if(GS.moveLeft)GS.playerX=Math.max(0,GS.playerX-pxStep);
   if(GS.moveRight)GS.playerX=Math.min(100-GS.playerWidth/W*100,GS.playerX+pxStep);
-  // Move CPU players
-  const cpuSpdMul={rookie:0.7,normal:1,expert:1.5};
+  // Move CPU players: decide direction periodically, move every frame
+  const cpuSpdMul={rookie:3,normal:4.5,expert:7};
   GS.cpuPlayers.forEach(cpu=>{
     if(!cpu.alive)return;
-    if(now-cpu.lastDecision<cpu.reactionDelay)return;
-    cpu.lastDecision=now;
-    const dir=CPUBrain.decide(cpu,GS.fallingObjects,GS.powerUpItems,cpu.level);
-    const cspd=spd*(cpuSpdMul[cpu.level]||1);
-    if(dir==='left')cpu.x=Math.max(15,cpu.x-cspd);
-    else if(dir==='right')cpu.x=Math.min(W-15,cpu.x+cspd);
+    // Update decision at reaction interval
+    if(now-cpu.lastDecision>=cpu.reactionDelay){
+      cpu.lastDecision=now;
+      cpu.dir=CPUBrain.decide(cpu,GS.fallingObjects,GS.powerUpItems,cpu.level);
+    }
+    // Move every frame based on last decision
+    const cspd=cpuSpdMul[cpu.level]||4;
+    if(cpu.dir==='left')cpu.x=Math.max(15,cpu.x-cspd);
+    else if(cpu.dir==='right')cpu.x=Math.min(W-15,cpu.x+cspd);
   });
   // Update difficulty
   updateDifficulty();
@@ -1149,14 +1183,23 @@ function updateHUD(){
     else puText+=p.icon+' ';
   });
   document.getElementById('hud-powerup').textContent=puText;
-  document.getElementById('hud-difficulty').textContent='STAGE '+GS.currentStage;
-  const timeLeft=Math.ceil(GS.stageTimeRemaining||0);
-  const tMin=Math.floor(timeLeft/60);const tSec=timeLeft%60;
   const timeEl=document.getElementById('hud-time');
-  timeEl.textContent='⏱ '+tMin+':'+String(tSec).padStart(2,'0');
-  timeEl.className=timeLeft<=30?'hud-time warning':'hud-time';
+  if(GS.gameMode==='scoreAttack'){
+    document.getElementById('hud-difficulty').textContent='SCORE ATTACK';
+    const elapsed=Math.floor((Date.now()-GS.gameStartTime)/1000);
+    const eMin=Math.floor(elapsed/60);const eSec=elapsed%60;
+    timeEl.textContent='⏱ '+eMin+':'+String(eSec).padStart(2,'0');
+    timeEl.className='hud-time';
+  } else {
+    document.getElementById('hud-difficulty').textContent='STAGE '+GS.currentStage;
+    const timeLeft=Math.ceil(GS.stageTimeRemaining||0);
+    const tMin=Math.floor(timeLeft/60);const tSec=timeLeft%60;
+    timeEl.textContent='⏱ '+tMin+':'+String(tSec).padStart(2,'0');
+    timeEl.className=timeLeft<=30?'hud-time warning':'hud-time';
+  }
   const ghRight=document.getElementById('gh-right');
-  ghRight.textContent='STAGE '+GS.currentStage+' / '+(currentLang==='ja'?STAGE_CONFIG[GS.currentStage].labelJa:STAGE_CONFIG[GS.currentStage].label);
+  ghRight.textContent=GS.gameMode==='scoreAttack'?'SCORE ATTACK':
+    'STAGE '+GS.currentStage+' / '+(currentLang==='ja'?STAGE_CONFIG[GS.currentStage].labelJa:STAGE_CONFIG[GS.currentStage].label);
   // Dash gauge
   document.getElementById('dash-fill').style.width=Dash.getGaugePercent()+'%';
   const dashCd=Math.max(0,GS.dashCooldown-(Date.now()-GS.dashLastTime));
@@ -1217,20 +1260,22 @@ function showResult(){
       if(wc){const wctx=wc.getContext('2d');drawStickFigure(wctx,50,60,PLAYER_COLORS[parseInt(winnerIdx)]?.hex||'#fff','win',1.5,1);}
     },100);
   } else {
+    const isScoreAtk=GS.gameMode==='scoreAttack';
     SoundMgr.playSE(GS.allCleared?'win':'lose');
-    let html='<h2>'+(GS.allCleared?'ALL STAGES CLEARED!':t('game_over'))+'</h2>';
+    let html='<h2>'+(GS.allCleared?'ALL STAGES CLEARED!':(isScoreAtk?'SCORE ATTACK':t('game_over')))+'</h2>';
     html+='<canvas id="resultCharCanvas" width="80" height="80" style="margin:0 auto;display:block"></canvas>';
     html+='<div class="stats">';
     html+='<div><span>SCORE</span><span>'+GS.score+'</span></div>';
-    html+='<div><span>DIFFICULTY</span><span>'+t('difficulty_'+GS.difficulty).toUpperCase()+'</span></div>';
-    html+='<div><span>STAGE</span><span>'+GS.currentStage+' / '+(currentLang==='ja'?STAGE_CONFIG[GS.currentStage].labelJa:STAGE_CONFIG[GS.currentStage].label)+'</span></div>';
+    if(isScoreAtk){html+='<div><span>MODE</span><span>SCORE ATTACK</span></div>';}
+    else{html+='<div><span>STAGE</span><span>'+GS.currentStage+' / '+(currentLang==='ja'?STAGE_CONFIG[GS.currentStage].labelJa:STAGE_CONFIG[GS.currentStage].label)+'</span></div>';}
     html+='<div><span>MAX COMBO</span><span>x'+GS.maxCombo+' ('+GS.comboCount+')</span></div>';
     html+='<div><span>TIME</span><span>'+Math.floor(GS.elapsed/1000)+'s</span></div></div>';
     if(GS.username&&!GS.isGuest){
       submitScore();
       html+='<div style="color:var(--neon-gold);font-size:12px;margin:8px 0">📊 ランキング登録完了</div>';
     }
-    html+='<div class="result-btns"><button class="btn" onclick="startSoloGame()">'+t('retry')+'</button>';
+    const retryFn=isScoreAtk?'startScoreAttack()':'startSoloGame()';
+    html+='<div class="result-btns"><button class="btn" onclick="'+retryFn+'">'+t('retry')+'</button>';
     html+='<button class="btn btn-sub" onclick="backToTitle()">'+t('back_to_title')+'</button></div>';
     box.innerHTML=html;
     showScreen('result');
@@ -1250,7 +1295,8 @@ function submitScore(){
   if(GS.score>maxPossible)return;
   database.ref('rankings').push({
     username:GS.username,score:GS.score,difficulty:GS.difficulty,
-    gameMode:GS.gameMode,elapsed,timestamp:firebase.database.ServerValue.TIMESTAMP
+    gameMode:GS.gameMode,stage:GS.currentStage,elapsed,
+    timestamp:firebase.database.ServerValue.TIMESTAMP
   });
 }
 
@@ -1297,11 +1343,25 @@ function startSoloGame(){
   cpuSetup.forEach((lv,i)=>{
     if(!lv)return;
     GS.cpuPlayers.push({pIdx:i+1,x:200+i*150,alive:true,level:lv,
-      color:PLAYER_COLORS[i+1].hex,reactionDelay:delays[lv],lastDecision:0,score:0});
+      color:PLAYER_COLORS[i+1].hex,reactionDelay:delays[lv],lastDecision:0,dir:'stop',score:0});
   });
   showScreen('game');setupCanvas();
   GS.cpuPlayers.forEach((cpu,ci)=>{cpu.x=W*(0.2+ci*0.3);});
   SoundMgr.changeBGMForStage(1);
+  Commentary.queue=[];Commentary.add('c_start',1);gameLoop();
+}
+
+// ===== Score Attack Mode =====
+const SCORE_ATTACK_DIFF={fallSpeed:7,spawnInterval:220,maxObjects:22};
+function startScoreAttack(){
+  resetGameState();
+  GS.gameMode='scoreAttack';GS.difficulty='hard';
+  GS.isMulti=false;GS.isHost=true;GS.gameStartTime=Date.now();GS.stageStartTime=Date.now();GS.gameActive=true;
+  GS.currentStage=5;GS.cpuPlayers=[];
+  GS.currentFallSpeed=SCORE_ATTACK_DIFF.fallSpeed;
+  GS.currentSpawnInterval=SCORE_ATTACK_DIFF.spawnInterval;
+  showScreen('game');setupCanvas();
+  SoundMgr.changeBGMForStage(5);
   Commentary.queue=[];Commentary.add('c_start',1);gameLoop();
 }
 
@@ -1393,14 +1453,27 @@ function backToTitle(){
 }
 
 // ===== Rankings =====
-function loadRankings(){
+function loadRankings(mode){
+  mode=mode||'scoreAttack';
+  const tabs=document.getElementById('ranking-tabs');
+  tabs.innerHTML='';
+  [{key:'scoreAttack',label:'スコアアタック'},{key:'stage',label:'ステージモード'}].forEach(t=>{
+    const b=document.createElement('button');b.className='btn'+(mode===t.key?' selected':'');b.textContent=t.label;
+    b.style.cssText='padding:6px 14px;font-size:13px;margin:0 4px';
+    b.addEventListener('click',()=>loadRankings(t.key));tabs.appendChild(b);
+  });
   const list=document.getElementById('ranking-list');list.innerHTML='<div style="color:var(--text-dim)">読み込み中...</div>';
-  database.ref('rankings').orderByChild('score').limitToLast(50).once('value',snap=>{
-    const entries=[];snap.forEach(c=>{entries.push(c.val());});entries.sort((a,b)=>b.score-a.score);
-    if(!entries.length){list.innerHTML='<div style="color:var(--text-dim)">まだランキングデータがありません</div>';return;}
-    list.innerHTML='';entries.forEach((e,i)=>{
+  database.ref('rankings').orderByChild('score').limitToLast(100).once('value',snap=>{
+    const entries=[];snap.forEach(c=>{const v=c.val();entries.push(v);});
+    const filtered=entries.filter(e=>mode==='scoreAttack'?e.gameMode==='scoreAttack':e.gameMode!=='scoreAttack');
+    filtered.sort((a,b)=>b.score-a.score);
+    const top10=filtered.slice(0,10);
+    if(!top10.length){list.innerHTML='<div style="color:var(--text-dim)">まだランキングデータがありません</div>';return;}
+    list.innerHTML='';top10.forEach((e,i)=>{
       const div=document.createElement('div');div.className='ranking-entry';
-      div.innerHTML='<span>'+(i+1)+'. '+e.username+'</span><span>'+e.score+'</span>';list.appendChild(div);
+      const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
+      const info=mode==='scoreAttack'?'':' (Stage '+e.stage+')';
+      div.innerHTML='<span>'+medal+(i+1)+'. '+e.username+info+'</span><span>'+e.score+'</span>';list.appendChild(div);
     });
   }).catch(()=>{list.innerHTML='<div style="color:var(--text-dim)">取得失敗</div>';});
 }
@@ -1464,6 +1537,7 @@ function setupUI(){
   document.getElementById('toggle-lang').addEventListener('click',function(){switchLanguage(currentLang==='ja'?'en':'ja');this.textContent=currentLang==='ja'?'🌐':'🌐';});
   document.getElementById('btn-join-room').addEventListener('click',()=>{SoundMgr.playSE('click');joinRoom();});
   document.getElementById('btn-start-solo').addEventListener('click',()=>{SoundMgr.playSE('click');startSoloGame();});
+  document.getElementById('btn-score-attack').addEventListener('click',()=>{SoundMgr.playSE('click');startScoreAttack();});
   document.querySelectorAll('.btn').forEach(b=>{b.addEventListener('mouseenter',()=>SoundMgr.playSE('hover'));});
 }
 // CPU level selection state
