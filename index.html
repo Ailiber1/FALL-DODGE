@@ -1163,10 +1163,11 @@ const SyncLayer = {
     if(this.roomRef)this.roomRef.child('players/'+idx).update({alive:false,score,deathTimestamp:firebase.database.ServerValue.TIMESTAMP});
   },
   updateFallingObjects(objs){
-    if(this.roomRef)this.roomRef.child('fallingObjects').set(objs.filter(o=>o.typeId!=='wall').map(o=>({x:o.x,y:o.y,w:o.w,h:o.h,typeId:o.typeId,color:o.color,rotation:o.rotation||0,speed:o.speed,isBoss:o.isBoss||false})));
+    // Send as ratios (0-1) so different screen sizes render correctly
+    if(this.roomRef&&W>0&&H>0)this.roomRef.child('fallingObjects').set(objs.filter(o=>o.typeId!=='wall').map(o=>({xr:o.x/W,yr:o.y/H,wr:o.w/W,hr:o.h/H,typeId:o.typeId,color:o.color,rotation:o.rotation||0,speedR:o.speed/H,isBoss:o.isBoss||false})));
   },
   updatePowerUps(items){
-    if(this.roomRef)this.roomRef.child('powerUpItems').set(items.map(p=>({x:p.x,y:p.y,w:p.w,h:p.h,puType:p.puType,color:p.color})));
+    if(this.roomRef&&W>0&&H>0)this.roomRef.child('powerUpItems').set(items.map(p=>({xr:p.x/W,yr:p.y/H,wr:p.w/W,hr:p.h/H,puType:p.puType,color:p.color})));
   },
   onPlayersUpdate(cb){const r=this.roomRef.child('players');r.on('value',s=>cb(s.val()));this.listeners.push(r);},
   onFallingObjectsUpdate(cb){const r=this.roomRef.child('fallingObjects');r.on('value',s=>cb(s.val()));this.listeners.push(r);},
@@ -1902,11 +1903,16 @@ function showToast(msg,duration){const t=document.createElement('div');t.classNa
 // ===== Canvas Setup =====
 function setupCanvas(){
   canvas=document.getElementById('gameCanvas');ctx=canvas.getContext('2d');
-  resizeCanvas();window.addEventListener('resize',resizeCanvas);
+  resizeCanvas();
+  // Retry after layout settle (mobile may not have dimensions yet)
+  if(W===0||H===0)requestAnimationFrame(()=>resizeCanvas());
+  window.addEventListener('resize',resizeCanvas);
 }
 function resizeCanvas(){
   const wrap=document.querySelector('.game-canvas-wrap');if(!wrap)return;
-  canvas.width=wrap.clientWidth;canvas.height=wrap.clientHeight;
+  const cw=wrap.clientWidth,ch=wrap.clientHeight;
+  if(cw===0||ch===0)return;// skip if DOM not laid out yet
+  canvas.width=cw;canvas.height=ch;
   W=canvas.width;H=canvas.height;groundY=H*GROUND_Y_RATIO;
 }
 
@@ -2256,8 +2262,17 @@ function startMultiGame(){
     badge.id='badge-'+idx;hpEl.appendChild(badge);
   });
   if(!GS.isHost){
-    SyncLayer.onFallingObjectsUpdate(objs=>{if(objs){const localWalls=GS.fallingObjects.filter(o=>o.typeId==='wall');GS.fallingObjects=objs.concat(localWalls);}});
-    SyncLayer.onPowerUpsUpdate(items=>{if(items)GS.powerUpItems=items;});
+    SyncLayer.onFallingObjectsUpdate(objs=>{if(objs&&W>0&&H>0){
+      const localWalls=GS.fallingObjects.filter(o=>o.typeId==='wall');
+      // Convert ratio coords back to local screen pixels
+      const converted=objs.map(o=>({x:o.xr*W,y:o.yr*H,w:o.wr*W,h:o.hr*H,
+        typeId:o.typeId,color:o.color,rotation:o.rotation||0,speed:o.speedR*H,isBoss:o.isBoss||false,
+        bounced:false,bounceVy:0,canBounce:false,deflected:false}));
+      GS.fallingObjects=converted.concat(localWalls);
+    }});
+    SyncLayer.onPowerUpsUpdate(items=>{if(items&&W>0&&H>0){
+      GS.powerUpItems=items.map(p=>({x:p.xr*W,y:p.yr*H,w:p.wr*W,h:p.hr*H,puType:p.puType,color:p.color,speed:GS.currentFallSpeed*0.7}));
+    }});
     // Listen for wall crush events from host
     let lastWallCrushTs=0;
     const wcRef=database.ref('rooms/'+GS.roomId+'/wallCrush');
