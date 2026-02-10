@@ -1934,7 +1934,7 @@ function submitScore(){
   const cat=GS.gameMode==='scoreAttack'?'scoreAttack':'stage';
   const sKey=GS.username.replace(/[.#$\/\[\]]/g,'_');
   database.ref('rankings/'+cat+'/'+sKey).transaction(current=>{
-    if(current===null||GS.score>current.score){
+    if(current===null){
       return{
         username:GS.username,score:GS.score,difficulty:GS.difficulty,
         gameMode:GS.gameMode,stage:GS.currentStage,elapsed,
@@ -1942,7 +1942,16 @@ function submitScore(){
         timestamp:firebase.database.ServerValue.TIMESTAMP
       };
     }
-    return;// abort: keep current higher score
+    const isHigher=GS.score>current.score;
+    return{
+      username:GS.username,
+      score:isHigher?GS.score:current.score,
+      difficulty:isHigher?GS.difficulty:current.difficulty,
+      gameMode:GS.gameMode,stage:GS.currentStage,
+      elapsed:isHigher?elapsed:current.elapsed,
+      isSecretStage:GS.isSecretStage||false,
+      timestamp:firebase.database.ServerValue.TIMESTAMP
+    };
   });
 }
 function recordMultiWin(winnerName){
@@ -2634,7 +2643,8 @@ function loadRankings(mode){
       list.innerHTML='';top10.forEach((e,i)=>{
         const div=document.createElement('div');div.className='ranking-entry';
         const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
-        const info=mode==='scoreAttack'?'':' (Stage '+e.stage+')';
+        const clrLbl=currentLang==='ja'?' クリア':' Clear';
+        const info=mode==='scoreAttack'?'':'  Stage '+e.stage+clrLbl;
         const scoreLbl=currentLang==='ja'?'スコア: ':'Score: ';
         div.innerHTML='<span>'+medal+(i+1)+'. '+e.username+info+'</span><span>'+scoreLbl+e.score+'</span>';list.appendChild(div);
       });
