@@ -63,17 +63,17 @@ body{background:radial-gradient(ellipse at 50% 40%,#002a10 0%,#001208 40%,#000a0
 #game-screen{padding:0;justify-content:flex-start}
 .game-hud{width:100%;background:rgba(0,10,5,0.95);border-bottom:2px solid rgba(0,255,65,0.3);z-index:5;padding:0}
 .hud-row1{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;gap:8px;flex-wrap:wrap}
-.hud-left{display:flex;align-items:center;gap:12px}
-.hud-center{display:flex;align-items:center;gap:12px}
-.hud-right{display:flex;align-items:center;gap:12px}
+.hud-left{display:flex;align-items:center;gap:12px;flex-shrink:0}
+.hud-center{display:flex;align-items:center;gap:6px;min-width:0;flex:1;justify-content:center;overflow:hidden}
+.hud-right{display:flex;align-items:center;gap:12px;flex-shrink:0}
 .hud-score{color:var(--neon-green);font-weight:bold;font-size:22px;text-shadow:0 0 10px var(--neon-green-glow);white-space:nowrap}
 .hud-combo{color:var(--neon-gold);font-weight:bold;font-size:16px;animation:pulse-glow 0.5s ease-in-out infinite}
 .hud-time{font-size:20px;color:#ff6644;text-shadow:0 0 8px rgba(255,100,60,0.6);font-weight:bold;white-space:nowrap}
 .hud-time.warning{color:#ff2222;animation:pulse-glow 0.5s ease-in-out infinite;text-shadow:0 0 12px rgba(255,0,0,0.8)}
-.hud-stage{font-size:14px;color:var(--neon-green);font-weight:bold;white-space:nowrap}
-.hud-player-name{font-size:13px;font-weight:bold;white-space:nowrap}
+.hud-stage{font-size:14px;color:var(--neon-green);font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hud-player-name{font-size:13px;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hud-extra{font-size:13px;color:var(--text-dim);display:flex;gap:8px;align-items:center}
-.hud-row2{display:flex;gap:6px;padding:3px 12px;align-items:center;border-top:1px solid rgba(0,255,65,0.1)}
+.hud-row2{display:flex;gap:6px;padding:3px 12px;align-items:center;border-top:1px solid rgba(0,255,65,0.1);flex-wrap:wrap}
 .hud-row2 .p-badge{padding:2px 10px;border:1px solid;font-size:12px;font-weight:bold;white-space:nowrap}
 .hud-pause-btn{background:none;border:1px solid var(--neon-green-dim);color:var(--neon-green);font-size:18px;cursor:pointer;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;padding:0;transition:all 0.2s;font-family:inherit}
 .hud-pause-btn:hover{border-color:var(--neon-green);box-shadow:var(--border-glow)}
@@ -114,7 +114,8 @@ body{background:radial-gradient(ellipse at 50% 40%,#002a10 0%,#001208 40%,#000a0
 .lobby-player .dot{width:10px;height:10px;border-radius:50%}
 .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,20,10,0.95);border:1px solid var(--neon-green);color:var(--neon-green);padding:10px 24px;font-size:13px;z-index:100;animation:float-in 0.3s ease-out;white-space:pre-line;text-align:center;max-width:90%}
 .error-text{color:var(--neon-red);font-size:12px;margin-top:4px;display:none}
-@media(max-width:600px){.panel{padding:15px;width:95%}.btn{padding:10px;font-size:13px}.ctrl-btn{padding:20px 24px;font-size:20px;min-height:60px}}
+@media(max-width:600px){.panel{padding:15px;width:95%}.btn{padding:10px;font-size:13px}.ctrl-btn{padding:20px 24px;font-size:20px;min-height:60px}.hud-row1{padding:4px 8px;gap:4px}.hud-score{font-size:17px}.hud-time{font-size:16px}.hud-stage{font-size:12px;max-width:40vw}.hud-combo{font-size:13px}.hud-player-name{font-size:11px;max-width:20vw}#hud-multi-rule{display:none!important}.hud-row2{padding:2px 8px;gap:4px}.hud-row2 .p-badge{padding:2px 6px;font-size:10px}.hud-extra{font-size:11px}.commentary-bar{top:auto;bottom:8px;left:8px;font-size:12px;padding:6px 10px;max-width:65%;opacity:0.85}}
+@media(max-width:380px){.hud-score{font-size:14px}.hud-time{font-size:14px}.hud-stage{font-size:11px;max-width:35vw}.hud-pause-btn{width:28px;height:28px;font-size:14px}.hud-left{gap:6px}.hud-right{gap:6px}}
 @media(hover:hover) and (pointer:fine){.mobile-controls{display:none}}
 .secret-popup{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);z-index:200;display:flex;align-items:center;justify-content:center;animation:float-in 0.6s ease-out}
 .secret-popup-inner{text-align:center;border:2px solid #ff0022;box-shadow:0 0 30px rgba(255,0,34,0.5),0 0 60px rgba(255,0,34,0.2),inset 0 0 30px rgba(255,0,34,0.05);padding:40px 50px;background:rgba(20,0,0,0.95);max-width:460px;width:90%;position:relative}
@@ -196,7 +197,7 @@ body{background:radial-gradient(ellipse at 50% 40%,#002a10 0%,#001208 40%,#000a0
 <button class="btn btn-sub" id="btn-quit-game">タイトルに戻る</button>
 </div>
 </div>
-<div id="countdown-overlay" style="display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,5,2,0.7);z-index:10;display:none;align-items:center;justify-content:center">
+<div id="countdown-overlay" style="display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,5,2,0.7);z-index:10;align-items:center;justify-content:center">
 <span id="countdown-text" style="font-size:clamp(80px,20vw,160px);font-weight:bold;color:var(--neon-green);text-shadow:0 0 40px var(--neon-green-glow),0 0 80px var(--neon-green-glow);font-family:inherit"></span>
 </div>
 <div class="commentary-bar" id="commentary-bar"></div>
@@ -1789,8 +1790,31 @@ function render(){
   if(Date.now()<GS.stageTransitionUntil){
     const alpha=Math.min(1,(GS.stageTransitionUntil-Date.now())/1000);
     ctx.globalAlpha=alpha;ctx.fillStyle=STAGE_CONFIG[GS.currentStage].accent;
-    ctx.font='bold '+Math.min(36,W/12)+'px monospace';ctx.textAlign='center';
-    ctx.fillText(GS.stageTransitionText,W/2,H/2);ctx.globalAlpha=1;
+    const stFontSize=Math.min(36,W/12);
+    ctx.font='bold '+stFontSize+'px monospace';ctx.textAlign='center';
+    const parts=GS.stageTransitionText.split(' - ');
+    if(parts.length===2&&ctx.measureText(GS.stageTransitionText).width>W*0.85){
+      ctx.fillText(parts[0],W/2,H/2-stFontSize*0.6);
+      ctx.font='bold '+Math.max(14,stFontSize*0.7)+'px monospace';
+      ctx.fillText(parts[1],W/2,H/2+stFontSize*0.6);
+    } else {
+      ctx.fillText(GS.stageTransitionText,W/2,H/2);
+    }
+    ctx.globalAlpha=1;
+  }
+  // Spectating overlay (dead during timed multi stage)
+  if(GS.isMulti&&!GS.isAlive&&GS.gameActive){
+    ctx.globalAlpha=0.5;ctx.fillStyle='#000000';ctx.fillRect(0,0,W,H);ctx.globalAlpha=1;
+    const specText=currentLang==='ja'?'観戦中...':'SPECTATING...';
+    const specSize=Math.min(32,W/10);
+    ctx.font='bold '+specSize+'px monospace';ctx.textAlign='center';
+    ctx.fillStyle='rgba(255,255,255,0.7)';ctx.fillText(specText,W/2,H*0.15);
+    const hintText=currentLang==='ja'?'次のステージで復活します':'You will revive next stage';
+    const isTimedStage=GS.multiStage<MULTI_STAGE.length-1;
+    if(isTimedStage){
+      ctx.font=Math.min(16,W/22)+'px monospace';ctx.fillStyle='rgba(200,200,200,0.5)';
+      ctx.fillText(hintText,W/2,H*0.15+specSize*1.2);
+    }
   }
   ctx.restore();
 }
