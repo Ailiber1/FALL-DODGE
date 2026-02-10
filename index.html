@@ -1231,6 +1231,9 @@ function spawnFallingObject(){
 
 function spawnBossObject(){
   if(GS.elapsed<GS.nextBossTime)return;
+  // Prevent boss during wall crush (boss could block the safe gap)
+  if(GS.fallingObjects.some(o=>o.typeId==='wall'))return;
+  if(GS.bossWarnings.some(w=>w.isWall))return;
   GS.nextBossTime=GS.elapsed+(GS.currentStage===6?15000:30000);
   SoundMgr.playSE('boss_warn');Commentary.add('c_boss',3);
   const btype=BOSS_TYPES[Math.floor(Math.random()*BOSS_TYPES.length)];
@@ -1253,6 +1256,9 @@ function trySpawnWallCrush(){
   const isScoreAttack=GS.gameMode==='scoreAttack';
   if(!isSecret&&!isMultiHard&&!isScoreAttack)return;
   if(GS.elapsed<nextWallCrush)return;
+  // Prevent wall crush while boss is on screen (boss could block the safe gap)
+  if(GS.fallingObjects.some(o=>o.isBoss&&o.typeId!=='wall'))return;
+  if(GS.bossWarnings.some(w=>!w.isWall&&!w.isSafe))return;
   // Hidden: 18-30s, Multi Hard: 30-50s, Score Attack: 25-40s
   nextWallCrush=GS.elapsed+(isSecret?18000+Math.random()*12000:isScoreAttack?25000+Math.random()*15000:30000+Math.random()*20000);
   // Use ratios (0-1) so all screens show same layout
