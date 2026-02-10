@@ -463,6 +463,13 @@ const MULTI_DIFFICULTY = {
   normal:{fallSpeed:7,  spawnInterval:250,maxObjects:20},
   hard:  {fallSpeed:7,  spawnInterval:220,maxObjects:22}
 };
+// Multi stage progression: internal stages 3→4→5→final(scoreAttack-style)
+const MULTI_STAGE = [
+  {internalStage:3,timeLimit:60},   // ステージ1: 1分
+  {internalStage:4,timeLimit:120},  // ステージ2: 2分
+  {internalStage:5,timeLimit:120},  // ステージ3: 2分
+  {internalStage:0,timeLimit:0}     // ファイナルステージ: 無制限
+];
 
 // ===== Falling Object Types =====
 const OBJ_TYPES = [
@@ -1274,23 +1281,34 @@ function spawnWallCrushLocal(gapXR,gapRatio,warnDur){
 
 // ===== Difficulty Update (stage-based + time ramp) =====
 function updateDifficulty(){
-  if(GS.gameMode==='scoreAttack'||(GS.isMulti&&GS.difficulty==='hard')){
-    // Score Attack & Multi Hard: same high difficulty, slow gradual ramp
-    const base=GS.isMulti?MULTI_DIFFICULTY.hard:SCORE_ATTACK_DIFF;
+  if(GS.gameMode==='scoreAttack'){
     const elapsed=(Date.now()-GS.gameStartTime)/1000;
-    const ramp=Math.min(1,elapsed/600);// maxes out at 10 minutes
-    GS.currentFallSpeed=base.fallSpeed*(1+ramp*0.8);
-    GS.currentSpawnInterval=Math.max(80,base.spawnInterval*(1-ramp*0.5));
+    const ramp=Math.min(1,elapsed/600);
+    GS.currentFallSpeed=SCORE_ATTACK_DIFF.fallSpeed*(1+ramp*0.8);
+    GS.currentSpawnInterval=Math.max(80,SCORE_ATTACK_DIFF.spawnInterval*(1-ramp*0.5));
     if(GS.slowMotion)GS.currentFallSpeed*=0.5;
     return;
   }
   if(GS.isMulti){
-    // Multi easy/normal: fixed difficulty with gentle ramp
-    const md=MULTI_DIFFICULTY[GS.difficulty]||MULTI_DIFFICULTY.normal;
-    const elapsed=(Date.now()-GS.gameStartTime)/1000;
-    const ramp=Math.min(1,elapsed/600);
-    GS.currentFallSpeed=md.fallSpeed*(1+ramp*0.6);
-    GS.currentSpawnInterval=Math.max(100,md.spawnInterval*(1-ramp*0.4));
+    const ms=MULTI_STAGE[GS.multiStage];
+    if(ms.timeLimit>0){
+      // Timed multi stage: use STAGE_DIFFICULTY with time-based ramp
+      const sd=STAGE_DIFFICULTY[GS.currentStage];if(!sd)return;
+      const stageElapsed=(Date.now()-GS.multiStageStartTime)/1000;
+      const progress=Math.min(1,stageElapsed/ms.timeLimit);
+      const ramp=progress<0.5?progress*0.6:0.3+Math.pow((progress-0.5)*2,1.5)*0.7;
+      GS.currentFallSpeed=sd.fallSpeed*(1+ramp*1.2);
+      GS.currentSpawnInterval=Math.max(80,sd.spawnInterval*(1-ramp*0.6));
+      const timeLeft=ms.timeLimit-stageElapsed;
+      if(timeLeft<=30){const urgency=1-timeLeft/30;GS.currentFallSpeed*=(1+urgency*0.3);GS.currentSpawnInterval=Math.max(60,GS.currentSpawnInterval*(1-urgency*0.3));}
+    } else {
+      // Final stage: gradual ramp like scoreAttack
+      const md=MULTI_DIFFICULTY[GS.difficulty]||MULTI_DIFFICULTY.normal;
+      const elapsed=(Date.now()-GS.multiStageStartTime)/1000;
+      const ramp=Math.min(1,elapsed/600);
+      GS.currentFallSpeed=md.fallSpeed*(1+ramp*0.8);
+      GS.currentSpawnInterval=Math.max(80,md.spawnInterval*(1-ramp*0.5));
+    }
     if(GS.slowMotion)GS.currentFallSpeed*=0.5;
     return;
   }
@@ -1313,7 +1331,7 @@ function updateDifficulty(){
 
 // ===== Stage Transition (time-based) =====
 function checkStageTransition(){
-  if(GS.gameMode==='scoreAttack')return;// no time limit in score attack
+  if(GS.gameMode==='scoreAttack'||GS.isMulti)return;// multi uses checkMultiStageTransition
   const sd=STAGE_DIFFICULTY[GS.currentStage];
   if(!sd)return;
   const stageElapsed=(Date.now()-GS.stageStartTime)/1000;
@@ -1340,6 +1358,67 @@ function advanceStage(){
   const csLabel=GS.currentStage===6?(currentLang==='ja'?'隠しステージ':'HIDDEN STAGE'):GS.currentStage>=5?(currentLang==='ja'?'ファイナルステージ':'FINAL STAGE'):t('c_stage').replace('{n}',GS.currentStage);
   Commentary.add(csLabel+'！',2);
 }
+// Multi stage transition: host checks time limit
+function checkMultiStageTransition(){
+  if(!GS.isMulti||!GS.isHost)return;
+  const ms=MULTI_STAGE[GS.multiStage];
+  if(!ms||ms.timeLimit===0)return;// final stage has no limit
+  const stageElapsed=(Date.now()-GS.multiStageStartTime)/1000;
+  GS.stageTimeRemaining=Math.max(0,ms.timeLimit-stageElapsed);
+  if(stageElapsed>=ms.timeLimit)advanceMultiStage();
+}
+function advanceMultiStage(){
+  GS.multiStage++;
+  // Revive all players + write new stage in single Firebase update
+  const updates={};
+  Object.keys(GS.players).forEach(idx=>{
+    if(GS.players[idx])updates['players/'+idx+'/alive']=true;
+  });
+  updates['multiStageNum']=GS.multiStage;
+  SyncLayer.roomRef.update(updates);
+  applyMultiStageAdvance(GS.multiStage);
+}
+function applyMultiStageAdvance(newStage){
+  GS.multiStage=newStage;
+  const ms=MULTI_STAGE[newStage];
+  // Revive local player
+  GS.isAlive=true;
+  if(GS.players[GS.playerIndex])GS.players[GS.playerIndex].alive=true;
+  // Clear objects and power-ups
+  GS.fallingObjects=[];GS.powerUpItems=[];GS.bossWarnings=[];
+  GS.activePowerUps.forEach(p=>{GS[p.key]=false;});GS.activePowerUps=[];
+  // Update internal stage and difficulty
+  if(ms.internalStage>0){
+    GS.currentStage=ms.internalStage;
+    const sd=STAGE_DIFFICULTY[ms.internalStage];
+    GS.currentFallSpeed=sd.fallSpeed;GS.currentSpawnInterval=sd.spawnInterval;
+  } else {
+    // Final stage: scoreAttack-style difficulty
+    GS.currentStage=5;
+    const md=MULTI_DIFFICULTY[GS.difficulty]||MULTI_DIFFICULTY.normal;
+    GS.currentFallSpeed=md.fallSpeed;GS.currentSpawnInterval=md.spawnInterval;
+  }
+  // Stage transition display
+  const dStage=newStage+1;
+  const isFinal=newStage>=MULTI_STAGE.length-1;
+  const stgName=isFinal?(currentLang==='ja'?'ファイナルステージ':'FINAL STAGE'):
+    (currentLang==='ja'?'ステージ '+dStage:'STAGE '+dStage);
+  const label=STAGE_CONFIG[GS.currentStage];
+  GS.stageTransitionUntil=Date.now()+2500;
+  GS.stageTransitionText=stgName+' - '+(currentLang==='ja'?label.labelJa:label.label);
+  SoundMgr.playSE('stage');SoundMgr.changeBGMForStage(GS.currentStage);
+  // Pause game and show countdown
+  GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);
+  // Restore badge opacity for revived players
+  Object.entries(GS.players).forEach(([idx,p])=>{
+    const badge=document.getElementById('badge-'+idx);
+    if(badge&&p){badge.style.opacity='1';const teamTag=GS.multiMode==='team'?'['+(GS.teamAssign[parseInt(idx)]||'A')+'] ':'';badge.innerHTML='● '+teamTag+(p.username||PLAYER_COLORS[parseInt(idx)].name)+(parseInt(idx)===GS.playerIndex?' (YOU)':'');}
+  });
+  showCountdown(()=>{
+    GS.multiStageStartTime=Date.now();GS.stageStartTime=Date.now();
+    GS.gameActive=true;gameLoop();
+  });
+}
 
 // ===== Game Loop =====
 function gameLoop(){
@@ -1354,11 +1433,11 @@ function gameLoop(){
     GS.timeRemaining=60000-GS.elapsed;
     if(GS.timeRemaining<=0){endGame(false);return;}
   }
-  // Move player
+  // Move player (skip if dead in spectator mode)
   const spd=GS.speedBoost?GS.moveSpeed*2:GS.moveSpeed;
   const pxStep=spd/W*100;
-  if(GS.moveLeft)GS.playerX=Math.max(0,GS.playerX-pxStep);
-  if(GS.moveRight)GS.playerX=Math.min(100-GS.playerWidth/W*100,GS.playerX+pxStep);
+  if(GS.isAlive&&GS.moveLeft)GS.playerX=Math.max(0,GS.playerX-pxStep);
+  if(GS.isAlive&&GS.moveRight)GS.playerX=Math.min(100-GS.playerWidth/W*100,GS.playerX+pxStep);
   // Hidden stage movement scoring
   if(GS.isSecretStage){
     const moveDelta=Math.abs(GS.playerX-GS.lastPlayerXFrame);
@@ -1515,7 +1594,7 @@ function gameLoop(){
     if(now>p.expiresAt){GS[p.key]=false;return false;}return true;
   });
   // Weather & stage
-  Weather.update();checkStageTransition();
+  Weather.update();checkStageTransition();checkMultiStageTransition();
   // Time triggers
   if(GS.elapsed>=60000&&!GS.timeTriggered[60]){GS.timeTriggered[60]=true;Commentary.add('c_1min',1);}
   if(GS.elapsed>=120000&&!GS.timeTriggered[120]){GS.timeTriggered[120]=true;Commentary.add('c_2min',1);}
@@ -1736,6 +1815,27 @@ function updateHUD(){
     const eMin=Math.floor(elapsed/60);const eSec=elapsed%60;
     timeEl.textContent='⏱ '+eMin+':'+String(eSec).padStart(2,'0');
     timeEl.className='hud-time';
+  } else if(GS.isMulti){
+    // Multi stage HUD
+    const ms=MULTI_STAGE[GS.multiStage];
+    const dStage=GS.multiStage+1;
+    const isFinal=GS.multiStage>=MULTI_STAGE.length-1;
+    const stNum=isFinal?(currentLang==='ja'?'ファイナルステージ':'FINAL STAGE'):(currentLang==='ja'?'ステージ '+dStage:'STAGE '+dStage);
+    const stLabel=currentLang==='ja'?STAGE_CONFIG[GS.currentStage].labelJa:STAGE_CONFIG[GS.currentStage].label;
+    diffEl.textContent=stNum+' / '+stLabel+(!GS.isAlive?(currentLang==='ja'?' [観戦中]':' [SPECTATING]'):'');
+    if(ms.timeLimit>0){
+      const stageElapsed=(Date.now()-GS.multiStageStartTime)/1000;
+      const timeLeft=Math.ceil(Math.max(0,ms.timeLimit-stageElapsed));
+      GS.stageTimeRemaining=timeLeft;
+      const tMin=Math.floor(timeLeft/60);const tSec=timeLeft%60;
+      timeEl.textContent='⏱ '+tMin+':'+String(tSec).padStart(2,'0');
+      timeEl.className=timeLeft<=30?'hud-time warning':'hud-time';
+    } else {
+      const elapsed=Math.floor((Date.now()-GS.multiStageStartTime)/1000);
+      const eMin=Math.floor(elapsed/60);const eSec=elapsed%60;
+      timeEl.textContent='⏱ '+eMin+':'+String(eSec).padStart(2,'0');
+      timeEl.className='hud-time';
+    }
   } else {
     const stLabel=currentLang==='ja'?STAGE_CONFIG[GS.currentStage].labelJa:STAGE_CONFIG[GS.currentStage].label;
     const stNum=GS.currentStage===6?(currentLang==='ja'?'隠しステージ':'HIDDEN STAGE'):GS.currentStage>=5?(currentLang==='ja'?'ファイナルステージ':'FINAL STAGE'):'STAGE '+GS.currentStage;
@@ -1759,8 +1859,7 @@ function updateHUD(){
 
 // ===== End Game =====
 function endGame(hit,cleared){
-  GS.gameActive=false;if(hit)GS.isAlive=false;
-  if(GS.animationId)cancelAnimationFrame(GS.animationId);
+  if(hit)GS.isAlive=false;
   GS.allCleared=cleared||false;
   GS.lastDeathStage=GS.currentStage;
   GS.lastCpuSetup=[...cpuSetup];
@@ -1770,19 +1869,34 @@ function endGame(hit,cleared){
     GS.weatherShakeFrames=5;render();
   }
   if(GS.isMulti){
-    // Update local state immediately so checkMultiEnd sees it
     if(GS.players[GS.playerIndex])GS.players[GS.playerIndex].alive=false;
     if(GS.players[GS.playerIndex])GS.players[GS.playerIndex].score=GS.score;
     SyncLayer.reportDeath(GS.playerIndex,GS.score);
-    // Check if game should end
+    // Timed multi stages: enter spectator mode (game loop continues)
+    const isTimedStage=GS.multiStage<MULTI_STAGE.length-1;
+    if(isTimedStage){
+      // Don't stop game loop - spectate until stage ends or all dead
+      setTimeout(()=>checkMultiEnd(),500);
+      return;
+    }
+    // Final stage: stop game loop normally
+    GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);
     setTimeout(()=>checkMultiEnd(),500);
     return;
   }
   // Solo result
+  GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);
   setTimeout(()=>showResult(),500);
 }
 function checkMultiEnd(){
   const alive=Object.entries(GS.players).filter(([k,v])=>v&&v.alive);
+  const isTimedStage=GS.multiStage<MULTI_STAGE.length-1;
+  if(isTimedStage){
+    // Timed stages: game over only if ALL players dead
+    if(alive.length===0){GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);showResult();}
+    return;// otherwise spectate
+  }
+  // Final stage: normal end conditions
   let ended=false;
   if(GS.multiMode==='team'){
     const aliveTeams=new Set(alive.map(([idx])=>GS.teamAssign[parseInt(idx)]||'A'));
@@ -2044,7 +2158,8 @@ function resetGameState(){
     difficultyFrozen:false,lastSpawnTime:0,nextBossTime:30000,weatherNextChange:15000,
     weatherShakeFrames:0,weatherFlash:0,stageTransitionUntil:0,timeRemaining:60000,stageTimeRemaining:120,
     comboTriggered:{},scoreTriggered:{},timeTriggered:{},isSecretStage:false,
-    moveDistAccum:0,lastPlayerXFrame:50,moveScoreTimer:0});
+    moveDistAccum:0,lastPlayerXFrame:50,moveScoreTimer:0,
+    multiStage:0,multiStageStartTime:0});
   GS.reverse=GS.gameMode==='reverse';GS.stageStartTime=Date.now();nextWallCrush=0;
   const sd=STAGE_DIFFICULTY[1];GS.currentFallSpeed=sd.fallSpeed;GS.currentSpawnInterval=sd.spawnInterval;
   // Hide multi-rule HUD when not multi
@@ -2360,9 +2475,12 @@ function startMultiGame(){
   SyncLayer.listeners.forEach(r=>r.off());SyncLayer.listeners=[];
   if(SyncLayer.roomRef)SyncLayer.roomRef.child('players').off('value');
   resetGameState();GS.isMulti=true;GS.cpuPlayers=[];
-  // Apply multiplayer difficulty preset
-  const md=MULTI_DIFFICULTY[GS.difficulty]||MULTI_DIFFICULTY.normal;
-  GS.currentFallSpeed=md.fallSpeed;GS.currentSpawnInterval=md.spawnInterval;
+  // Initialize multi stage system (start at stage 0 = internal stage 3)
+  GS.multiStage=0;
+  const ms0=MULTI_STAGE[0];
+  GS.currentStage=ms0.internalStage;
+  const sd0=STAGE_DIFFICULTY[ms0.internalStage];
+  GS.currentFallSpeed=sd0.fallSpeed;GS.currentSpawnInterval=sd0.spawnInterval;
   showScreen('game');setupCanvas();SoundMgr.playMultiBGM();
   // Show multi rules in HUD
   const ruleEl=document.getElementById('hud-multi-rule');
@@ -2414,6 +2532,14 @@ function startMultiGame(){
       activatePowerUp(act.pt);
     });
     SyncLayer.listeners.push(puActRef);
+    // Listen for multi stage advances from host
+    const msRef=SyncLayer.roomRef.child('multiStageNum');
+    msRef.on('value',snap=>{
+      const val=snap.val();
+      if(val===null||val<=GS.multiStage)return;
+      applyMultiStageAdvance(val);
+    });
+    SyncLayer.listeners.push(msRef);
   }
   SyncLayer.onPlayersUpdate(players=>{
     if(!players)return;
@@ -2429,8 +2555,12 @@ function startMultiGame(){
       if(badge&&p&&!p.alive){badge.style.opacity='0.3';const teamTag=GS.multiMode==='team'?'['+(GS.teamAssign[parseInt(idx)]||'A')+'] ':'';badge.innerHTML='● '+teamTag+(p.username||PLAYER_COLORS[parseInt(idx)].name)+' ☠';}
     });
     const alive=Object.entries(players).filter(([k,v])=>v&&v.alive);
+    const isTimedMultiStage=GS.multiStage<MULTI_STAGE.length-1;
     let gameEnded=false;
-    if(GS.multiMode==='team'){
+    if(isTimedMultiStage){
+      // Timed stages: only end if ALL players dead
+      if(alive.length===0)gameEnded=true;
+    } else if(GS.multiMode==='team'){
       const aliveTeams=new Set(alive.map(([idx])=>GS.teamAssign[parseInt(idx)]||'A'));
       if(aliveTeams.size<=1)gameEnded=true;
     } else if(GS.multiMode==='coop'){
@@ -2441,8 +2571,8 @@ function startMultiGame(){
     if(gameEnded&&!resultShown){GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);setTimeout(()=>showResult(),500);}
   });
   showCountdown(()=>{
-    GS.gameStartTime=Date.now();GS.stageStartTime=Date.now();GS.gameActive=true;
-    _multiGameStarting=false;
+    GS.gameStartTime=Date.now();GS.stageStartTime=Date.now();GS.multiStageStartTime=Date.now();
+    GS.gameActive=true;_multiGameStarting=false;
     Commentary.queue=[];Commentary.add('c_start',1);gameLoop();
   });
 }
