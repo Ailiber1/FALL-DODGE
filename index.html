@@ -1996,7 +1996,7 @@ function showResult(){
       const totalScore=sorted.reduce((s,e)=>s+(e[1].score||0),0);
       const winnerIdx=sorted[0]?sorted[0][0]:0;
       const winnerName=sorted[0]?sorted[0][1].username:'P1';
-      if(!isCoop&&winnerName&&GS.isHost)recordMultiWin(winnerName);
+      if(GS.multiMode==='individual'&&winnerName&&GS.isHost)recordMultiWin(winnerName);
       SoundMgr.playSE(isCoop?'lose':(parseInt(winnerIdx)===GS.playerIndex?'win':'lose'));
       let html='<h2>'+t('game_set')+'</h2>';
       html+='<div class="winner-area">';
