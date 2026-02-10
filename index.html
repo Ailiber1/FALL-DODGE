@@ -1431,11 +1431,12 @@ function gameLoop(){
   if(GS.animationId){cancelAnimationFrame(GS.animationId);}
   GS.animationId=requestAnimationFrame(gameLoop);
   const now=Date.now();
-  // Delta time: only compensate when fps drops significantly below 60 (Safari etc.)
-  // At 60fps (~16.67ms) dt=1.0 (unchanged). Below ~50fps (>20ms) scale up proportionally.
-  const rawDt=GS.lastFrameTime?now-GS.lastFrameTime:16.67;
-  const dt=rawDt>20?Math.min(rawDt/16.67,3):1;
-  GS.lastFrameTime=now;
+  // Delta time: use performance.now() for sub-ms precision
+  // Chrome 60fps (~16.67ms) → dt=1 (no change). Safari low fps (>17.5ms) → compensated.
+  const pNow=performance.now();
+  const rawDt=GS.lastFrameTime?pNow-GS.lastFrameTime:16.67;
+  GS.lastFrameTime=pNow;
+  const dt=rawDt>17.5?Math.min(rawDt/16.67,3):1;
   GS.elapsed=now-GS.gameStartTime;
   // Time Attack mode
   if(GS.gameMode==='timeAttack'){
