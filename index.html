@@ -536,6 +536,9 @@ const GS = {
   comboTriggered:{},scoreTriggered:{},timeTriggered:{},
   lastFrameTime:0
 };
+// Safari browser detection (Safari runs at ~half speed empirically)
+GS._isSafari=/^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+console.log('[FALL-DODGE] Browser: Safari='+GS._isSafari+', UA='+navigator.userAgent.slice(0,80));
 
 // ===== Canvas & Globals =====
 let canvas, ctx, W, H;
@@ -1439,8 +1442,10 @@ function gameLoop(){
   const fpsScale=clampDt>18?clampDt/16.667:1;
   // Resolution compensation: larger canvas needs faster pixel speeds
   const resScale=GS._speedScale||1;
-  // Use the larger factor to compensate for either root cause
-  const dt=Math.max(resScale,fpsScale);
+  // Safari direct detection: empirically confirmed 2x speed difference
+  const safariBoost=GS._isSafari?2:1;
+  // Use the largest factor
+  const dt=Math.max(safariBoost,resScale,fpsScale);
   GS.elapsed=now-GS.gameStartTime;
   // Time Attack mode
   if(GS.gameMode==='timeAttack'){
