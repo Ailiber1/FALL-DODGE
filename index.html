@@ -2584,9 +2584,21 @@ function startMultiGame(){
   gfRef.on('value',snap=>{
     const ts=snap.val();
     if(!ts||resultShown)return;
-    // Another client decided the match is over - end locally too
+    // Another client decided the match is over
+    // Fetch latest player data before showing result to ensure correct winner
     GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);
-    setTimeout(()=>showResult(),300);
+    SyncLayer.roomRef.child('players').once('value',pSnap=>{
+      const latestPlayers=pSnap.val();
+      if(latestPlayers){
+        // Preserve local player's authoritative data
+        if(latestPlayers[GS.playerIndex]){
+          latestPlayers[GS.playerIndex].score=GS.score;
+          latestPlayers[GS.playerIndex].alive=GS.isAlive;
+        }
+        GS.players=latestPlayers;
+      }
+      showResult();
+    });
   });
   SyncLayer.listeners.push(gfRef);
   SyncLayer.onPlayersUpdate(players=>{
