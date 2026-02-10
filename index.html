@@ -1431,7 +1431,16 @@ function gameLoop(){
   if(GS.animationId){cancelAnimationFrame(GS.animationId);}
   GS.animationId=requestAnimationFrame(gameLoop);
   const now=Date.now();
-  const dt=1;
+  const pnow=performance.now();
+  const rawDt=GS.lastFrameTime>0?(pnow-GS.lastFrameTime):16.667;
+  GS.lastFrameTime=pnow;
+  const clampDt=Math.min(rawDt,50);
+  // Frame-rate compensation: only if frame >18ms (below ~55fps)
+  const fpsScale=clampDt>18?clampDt/16.667:1;
+  // Resolution compensation: larger canvas needs faster pixel speeds
+  const resScale=GS._speedScale||1;
+  // Use the larger factor to compensate for either root cause
+  const dt=Math.max(resScale,fpsScale);
   GS.elapsed=now-GS.gameStartTime;
   // Time Attack mode
   if(GS.gameMode==='timeAttack'){
@@ -2189,6 +2198,10 @@ function resizeCanvas(){
   if(cw===0||ch===0)return;// skip if DOM not laid out yet
   canvas.width=cw;canvas.height=ch;
   W=canvas.width;H=canvas.height;groundY=H*GROUND_Y_RATIO;
+  // Speed scale: compensate for larger canvas (Retina/Safari) so game speed is resolution-independent
+  const REF_H=800;
+  GS._speedScale=Math.max(1,H/REF_H);
+  if(!GS._resLogDone){GS._resLogDone=true;console.log('[FALL-DODGE] Canvas:',W,'x',H,'dpr:',window.devicePixelRatio,'speedScale:',GS._speedScale);}
 }
 
 // ===== Reset Game State =====
