@@ -2587,6 +2587,7 @@ function startMultiGame(){
 // ===== Multi Result Countdown (LINKED BLOCKS style) =====
 let multiResultTimer=null;
 let multiResultReadyRef=null;
+let multiResultPlayersRef=null;
 function startMultiResultCountdown(){
   if(!GS.isMulti||!GS.roomId)return;
   const COUNTDOWN_SEC=20;
@@ -2645,18 +2646,35 @@ function startMultiResultCountdown(){
     }
     el.innerHTML=statusHtml;
   }
+  // Check if all remaining players are ready → skip countdown
+  function checkAllReady(){
+    roomRef.child('players').once('value',pSnap=>{
+      const currentPlayers=pSnap.val();
+      const currentTotal=currentPlayers?Object.keys(currentPlayers).filter(k=>currentPlayers[k]).length:0;
+      // Also update GS.players to reflect disconnections
+      if(currentPlayers)GS.players=currentPlayers;
+      roomRef.child('readyPlayers').once('value',rSnap=>{
+        const ready=rSnap.val();
+        const readyCount=ready?Object.keys(ready).length:0;
+        if(readyCount>=2&&readyCount>=currentTotal){
+          clearInterval(multiResultTimer);multiResultTimer=null;
+          resolveMultiResult();
+        }
+      });
+    });
+  }
   // Listen for ready state changes
   multiResultReadyRef=roomRef.child('readyPlayers');
   multiResultReadyRef.on('value',snap=>{
-    const readyPlayers=snap.val();
-    updateReadyDisplay(readyPlayers);
-    // If all players are ready, skip countdown and resolve immediately
-    const readyCount=readyPlayers?Object.keys(readyPlayers).length:0;
-    const totalCount=GS.players?Object.keys(GS.players).filter(k=>GS.players[k]).length:0;
-    if(readyCount>=2&&readyCount>=totalCount){
-      clearInterval(multiResultTimer);multiResultTimer=null;
-      resolveMultiResult();
-    }
+    updateReadyDisplay(snap.val());
+    checkAllReady();
+  });
+  // Listen for player disconnections during result screen
+  multiResultPlayersRef=roomRef.child('players');
+  multiResultPlayersRef.on('value',snap=>{
+    const currentPlayers=snap.val();
+    if(currentPlayers)GS.players=currentPlayers;
+    checkAllReady();
   });
   renderFooter();
   // Countdown timer
@@ -2703,6 +2721,7 @@ function resolveMultiResult(){
 function cleanupCountdown(){
   if(multiResultTimer){clearInterval(multiResultTimer);multiResultTimer=null;}
   if(multiResultReadyRef){multiResultReadyRef.off();multiResultReadyRef=null;}
+  if(multiResultPlayersRef){multiResultPlayersRef.off();multiResultPlayersRef=null;}
 }
 function cleanupRoom(roomId,playerIndex){
   if(!roomId)return;
