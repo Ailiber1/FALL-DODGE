@@ -1479,12 +1479,12 @@ function gameLoop(){
       }
     });
   }
-  // Update power-ups
+  // Update power-ups (non-host: display only, no pickup — prevents shared invincibility bug)
   for(let i=GS.powerUpItems.length-1;i>=0;i--){
     const pu=GS.powerUpItems[i];
     pu.y+=pu.speed;
     if(pu.y>H){GS.powerUpItems.splice(i,1);continue;}
-    if(pxAbs<pu.x+pu.w&&pxAbs+GS.playerWidth>pu.x&&pyAbs<pu.y+pu.h&&pyAbs+GS.playerHeight>pu.y){
+    if(!isNonHost&&pxAbs<pu.x+pu.w&&pxAbs+GS.playerWidth>pu.x&&pyAbs<pu.y+pu.h&&pyAbs+GS.playerHeight>pu.y){
       activatePowerUp(pu.puType);GS.powerUpItems.splice(i,1);
     }
   }
