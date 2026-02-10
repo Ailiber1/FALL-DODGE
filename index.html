@@ -1625,7 +1625,7 @@ function activatePowerUp(type){
   else if(type==='slow'){GS.slowMotion=true;GS.activePowerUps.push({key:'slowMotion',dur:pu.dur,expiresAt:Date.now()+pu.dur,icon:pu.icon});}
   else if(type==='invincible'){GS.invincible=true;GS.activePowerUps.push({key:'invincible',dur:pu.dur,expiresAt:Date.now()+pu.dur,icon:pu.icon});Commentary.add('c_invincible',2);}
   else if(type==='enlarge'){GS.enlarge=true;GS.activePowerUps.push({key:'enlarge',dur:pu.dur,expiresAt:Date.now()+pu.dur,icon:pu.icon});Commentary.add('c_enlarge',2);}
-  else if(type==='sabotage'){GS.confused=true;GS.activePowerUps.push({key:'confused',dur:pu.dur,expiresAt:Date.now()+pu.dur,icon:pu.icon});GS.weatherShakeFrames=8;}
+  else if(type==='sabotage'){GS.confused=true;const sDur=GS.isSecretStage?2000:pu.dur;GS.activePowerUps.push({key:'confused',dur:sDur,expiresAt:Date.now()+sDur,icon:pu.icon});GS.weatherShakeFrames=8;}
   spawnFloatText(GS.playerX/100*W,groundY-70,pu.icon+(type==='sabotage'?(currentLang==='ja'?' 混乱!':' CONFUSED!'):'  GET!'),pu.color,18);
 }
 
