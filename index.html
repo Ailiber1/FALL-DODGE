@@ -1202,7 +1202,7 @@ function spawnFallingObject(){
   // Power-up chance
   const puRoll=Math.random();let puCum=0;
   for(const[key,pu] of Object.entries(POWERUP_TYPES)){
-    if(pu.multiOnly&&!GS.isMulti)continue;
+    if(pu.multiOnly&&!GS.isMulti&&!GS.isSecretStage)continue;
     puCum+=pu.rate;
     if(puRoll<puCum){
       const pw=20,ph=20;
