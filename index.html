@@ -2231,6 +2231,7 @@ function resetGameState(){
 // ===== Pause =====
 let pausedTime=0;let pauseStart=0;
 function pauseGame(){
+  if(GS.isMulti)return;// no pause in multiplayer
   if(!GS.gameActive||GS.gameMode==='scoreAttack'&&!GS.gameActive)return;
   GS.gameActive=false;pauseStart=Date.now();
   if(GS.animationId)cancelAnimationFrame(GS.animationId);
@@ -2598,6 +2599,7 @@ function startMultiGame(){
   const sd0=STAGE_DIFFICULTY[ms0.internalStage];
   GS.currentFallSpeed=sd0.fallSpeed;GS.currentSpawnInterval=sd0.spawnInterval;
   showScreen('game');setupCanvas();SoundMgr.playMultiBGM();
+  document.getElementById('btn-pause').style.display='none';// hide pause in multi
   // Show multi rules in HUD
   const ruleEl=document.getElementById('hud-multi-rule');
   if(ruleEl){
@@ -2888,6 +2890,7 @@ function backToTitle(){
     cleanupRoom(GS.roomId,GS.playerIndex);
     SyncLayer.disconnect();GS.isMulti=false;GS.roomId=null;
   }
+  document.getElementById('btn-pause').style.display='';// restore pause btn
   SoundMgr.stopBGM();SoundMgr.playBGM('FALL DODGE_OP.mp3');showScreen('title');
 }
 
