@@ -1482,9 +1482,11 @@ function gameLoop(){
   // Multi sync
   if(GS.isMulti&&GS.isHost){
     SyncLayer.updateFallingObjects(GS.fallingObjects);SyncLayer.updatePowerUps(GS.powerUpItems);
-    SyncLayer.updatePlayerScore(GS.playerIndex,GS.score);
   }
-  if(GS.isMulti)SyncLayer.updatePlayerPos(GS.playerIndex,GS.playerX);
+  if(GS.isMulti){
+    SyncLayer.updatePlayerScore(GS.playerIndex,GS.score);
+    SyncLayer.updatePlayerPos(GS.playerIndex,GS.playerX);
+  }
   // ===== RENDER =====
   render();
   // HUD update
@@ -1760,6 +1762,11 @@ function showResult(){
   SoundMgr.stopBGM();
   const box=document.getElementById('result-box');
   if(GS.isMulti){
+    // Ensure local player data is authoritative before result calculation
+    if(GS.players[GS.playerIndex]){
+      GS.players[GS.playerIndex].score=GS.score;
+      GS.players[GS.playerIndex].alive=GS.isAlive;
+    }
     if(GS.multiMode==='team'){
       // Team-based result
       const teamScores={A:0,B:0};const teamAlive={A:false,B:false};
@@ -1800,8 +1807,12 @@ function showResult(){
       },100);
       startMultiResultCountdown();
     } else {
-      // Individual result
-      const sorted=Object.entries(GS.players).filter(([k,v])=>v).sort((a,b)=>(b[1].score||0)-(a[1].score||0));
+      // Individual result - sort by alive first (survivors win), then by score
+      const sorted=Object.entries(GS.players).filter(([k,v])=>v).sort((a,b)=>{
+        const aAlive=a[1].alive?1:0,bAlive=b[1].alive?1:0;
+        if(bAlive!==aAlive)return bAlive-aAlive;
+        return(b[1].score||0)-(a[1].score||0);
+      });
       const winnerIdx=sorted[0]?sorted[0][0]:0;
       const winnerName=sorted[0]?sorted[0][1].username:'P1';
       if(winnerName)recordMultiWin(winnerName);
@@ -2285,7 +2296,14 @@ function startMultiGame(){
     SyncLayer.listeners.push(wcRef);
   }
   SyncLayer.onPlayersUpdate(players=>{
-    if(!players)return;GS.players=players;
+    if(!players)return;
+    // Preserve local player's authoritative score and alive status
+    const myIdx=GS.playerIndex;
+    if(players[myIdx]&&GS.gameActive){
+      players[myIdx].score=GS.score;
+      players[myIdx].alive=GS.isAlive;
+    }
+    GS.players=players;
     Object.entries(players).forEach(([idx,p])=>{
       const badge=document.getElementById('badge-'+idx);
       if(badge&&p&&!p.alive){badge.style.opacity='0.3';const teamTag=GS.multiMode==='team'?'['+(GS.teamAssign[parseInt(idx)]||'A')+'] ':'';badge.innerHTML='● '+teamTag+(p.username||PLAYER_COLORS[parseInt(idx)].name)+' ☠';}
