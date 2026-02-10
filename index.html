@@ -1402,7 +1402,7 @@ function gameLoop(){
   const isNonHost=GS.isMulti&&!GS.isHost;
   for(let i=GS.fallingObjects.length-1;i>=0;i--){
     const obj=GS.fallingObjects[i];
-    // Non-host: skip physics for synced (non-wall) objects; host handles movement
+    // Non-host: interpolate synced objects locally; host handles full physics
     const localObj=!isNonHost||obj.typeId==='wall';
     if(localObj){
       // Deflected by shield - fly away
@@ -1435,6 +1435,25 @@ function gameLoop(){
       }
       // Passed screen
       if(obj.y>H+50&&!obj.bounced){
+        addScore(checkNearMiss(pxAbs,pyAbs,GS.playerWidth,GS.playerHeight,obj),obj.bossPoints||0);
+        if(obj.isBoss)Commentary.add('c_boss_dodge',2);
+        if(GS.score===1&&!GS.scoreTriggered.first){GS.scoreTriggered.first=true;Commentary.add('c_first',1);}
+        GS.fallingObjects.splice(i,1);continue;
+      }
+    } else {
+      // Non-host: interpolate movement locally between Firebase updates
+      obj.y+=obj.speed;
+      obj.rotation=(obj.rotation||0)+(obj.rotSpeed||0);
+      // Ground bounce (visual only)
+      if(!obj.bounced&&obj.y+obj.h>=groundY+10){
+        obj.bounced=true;obj.bounceVy=-obj.speed*0.3;
+        spawnParticles(obj.x+obj.w/2,groundY,obj.color,8,4);
+        if(obj.isBoss){GS.weatherShakeFrames=5;SoundMgr.playSE('hit');}
+      }
+      if(obj.bounced){obj.y+=obj.bounceVy;obj.bounceVy+=0.5;}
+      // Score when object passes off screen
+      if(obj.y>H+50&&!obj._localScored){
+        obj._localScored=true;
         addScore(checkNearMiss(pxAbs,pyAbs,GS.playerWidth,GS.playerHeight,obj),obj.bossPoints||0);
         if(obj.isBoss)Commentary.add('c_boss_dodge',2);
         if(GS.score===1&&!GS.scoreTriggered.first){GS.scoreTriggered.first=true;Commentary.add('c_first',1);}
@@ -1807,21 +1826,27 @@ function showResult(){
       },100);
       startMultiResultCountdown();
     } else {
-      // Individual result - sort by alive first (survivors win), then by score
+      // Individual / Co-op result - sort by alive first (survivors win), then by score
+      const isCoop=GS.multiMode==='coop';
       const sorted=Object.entries(GS.players).filter(([k,v])=>v).sort((a,b)=>{
         const aAlive=a[1].alive?1:0,bAlive=b[1].alive?1:0;
         if(bAlive!==aAlive)return bAlive-aAlive;
         return(b[1].score||0)-(a[1].score||0);
       });
+      const totalScore=sorted.reduce((s,e)=>s+(e[1].score||0),0);
       const winnerIdx=sorted[0]?sorted[0][0]:0;
       const winnerName=sorted[0]?sorted[0][1].username:'P1';
-      if(winnerName)recordMultiWin(winnerName);
-      SoundMgr.playSE(parseInt(winnerIdx)===GS.playerIndex?'win':'lose');
+      if(!isCoop&&winnerName)recordMultiWin(winnerName);
+      SoundMgr.playSE(isCoop?'lose':(parseInt(winnerIdx)===GS.playerIndex?'win':'lose'));
       let html='<h2>'+t('game_set')+'</h2>';
       html+='<div class="winner-area">';
       html+='<canvas id="winnerCanvas" width="100" height="100" style="margin:0 auto;display:block"></canvas>';
-      html+='<div class="winner-name">'+t('winner')+': '+(winnerName||'P'+(parseInt(winnerIdx)+1))+'</div></div>';
-      html+='<div class="stats"><div><span>SCORE</span><span>'+GS.score+'</span></div>';
+      if(isCoop){
+        html+='<div class="winner-name">'+(currentLang==='ja'?'チーム合計スコア: ':'TEAM TOTAL: ')+totalScore+'</div></div>';
+      } else {
+        html+='<div class="winner-name">'+t('winner')+': '+(winnerName||'P'+(parseInt(winnerIdx)+1))+'</div></div>';
+      }
+      html+='<div class="stats"><div><span>'+(isCoop?'YOUR SCORE':'SCORE')+'</span><span>'+GS.score+'</span></div>';
       html+='<div><span>MAX COMBO</span><span>x'+GS.maxCombo+'</span></div></div>';
       html+='<div class="ranking-list">';
       sorted.forEach(([idx,p],i)=>{
@@ -2249,6 +2274,9 @@ function startMultiGame(){
   if(_multiGameStarting)return;// prevent double invocation
   _multiGameStarting=true;
   if(GS.animationId){cancelAnimationFrame(GS.animationId);GS.animationId=null;}
+  // Clean up stale listeners from lobby and previous game (prevents duplicates on rematch)
+  SyncLayer.listeners.forEach(r=>r.off());SyncLayer.listeners=[];
+  if(SyncLayer.roomRef)SyncLayer.roomRef.child('players').off('value');
   resetGameState();GS.isMulti=true;GS.cpuPlayers=[];
   // Apply multiplayer difficulty preset
   const md=MULTI_DIFFICULTY[GS.difficulty]||MULTI_DIFFICULTY.normal;
