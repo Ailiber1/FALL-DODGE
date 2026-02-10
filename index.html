@@ -2359,7 +2359,7 @@ function joinRoom(){
         players:{0:{username:GS.username||'PLAYER 1',deviceId:GS.deviceId,x:50,alive:true,score:0}}});
       hideModal('multi-modal');showScreen('lobby');setupLobby(roomId);
     } else {
-      const players=room.players||{};const count=Object.keys(players).length;
+      const players=room.players||{};const count=Object.keys(players).filter(k=>players[k]).length;
       // Room exists but no players → stale room, delete and recreate
       if(count===0){
         roomRef.remove().then(()=>{joinRoom();});
@@ -2377,9 +2377,16 @@ function joinRoom(){
         SoundMgr.playSE('error');
         return;
       }
+      // Find first empty slot (0-3) instead of using count as index
+      let emptySlot=-1;
+      for(let i=0;i<4;i++){if(!players[i]){emptySlot=i;break;}}
+      if(emptySlot===-1){
+        showToast(currentLang==='ja'?'⚠ ルームが満員です':'⚠ Room is full',3000);
+        SoundMgr.playSE('error');return;
+      }
       GS.roomId=roomId;GS.isMulti=true;
       SyncLayer.connect(roomId);
-      GS.playerIndex=count;GS.isHost=false;
+      GS.playerIndex=emptySlot;GS.isHost=false;
       GS.difficulty=room.difficulty||'normal';GS.multiMode=room.gameMode||'individual';
       if(room.teamAssign)GS.teamAssign=room.teamAssign;
       roomRef.child('players/'+GS.playerIndex).set({username:GS.username||'PLAYER '+(GS.playerIndex+1),deviceId:GS.deviceId,x:50,alive:true,score:0});
