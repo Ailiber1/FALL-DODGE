@@ -1431,20 +1431,17 @@ function gameLoop(){
   if(GS.animationId){cancelAnimationFrame(GS.animationId);}
   GS.animationId=requestAnimationFrame(gameLoop);
   const now=Date.now();
-  // Safari speed fix: count actual frames over time to measure real fps
-  // Chrome: dt=1 always (zero change). Safari: dt=60/actualFps.
-  let dt=1;
-  if(GS._isSafari){
-    if(!GS._fpsM)GS._fpsM={s:now,f:0,dt:1};
-    GS._fpsM.f++;
-    const el=now-GS._fpsM.s;
-    if(el>=500||(GS._fpsM.dt===1&&el>=200&&GS._fpsM.f>=3)){
-      const fps=GS._fpsM.f*1000/el;
-      GS._fpsM.dt=fps<55?60/fps:1;
-      GS._fpsM.f=0;GS._fpsM.s=now;
-    }
-    dt=GS._fpsM.dt;
+  // Auto speed correction: measure real fps by counting frames.
+  // At 60fps dt=1 (no change). Low fps (e.g. 30fps) → dt=2 to compensate.
+  if(!GS._fpsM)GS._fpsM={s:now,f:0,dt:1};
+  GS._fpsM.f++;
+  const _fpsEl=now-GS._fpsM.s;
+  if(_fpsEl>=500||(GS._fpsM.dt===1&&_fpsEl>=150&&GS._fpsM.f>=3)){
+    const _fps=GS._fpsM.f*1000/_fpsEl;
+    GS._fpsM.dt=_fps<55?60/_fps:1;
+    GS._fpsM.f=0;GS._fpsM.s=now;
   }
+  const dt=GS._fpsM.dt;
   GS.elapsed=now-GS.gameStartTime;
   // Time Attack mode
   if(GS.gameMode==='timeAttack'){
@@ -3461,7 +3458,6 @@ const SecretStage = {
 
 // ===== Init =====
 function init(){
-  GS._isSafari=/^((?!chrome|android).)*safari/i.test(navigator.userAgent);
   GS.deviceId=getDeviceId();
   const saved=localStorage.getItem('fd_username');
   if(saved){GS.username=saved;GS.isGuest=false;document.getElementById('username-input').value=saved;}
