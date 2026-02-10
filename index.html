@@ -83,7 +83,7 @@ body{background:radial-gradient(ellipse at 50% 40%,#002a10 0%,#001208 40%,#000a0
 .pause-box h2{color:var(--neon-green);font-size:28px;margin-bottom:20px;text-shadow:0 0 20px var(--neon-green-glow)}
 .pause-box .btn{margin:6px 0;width:100%}
 .game-canvas-wrap{flex:1;width:100%;display:flex;justify-content:center;align-items:center;overflow:hidden;position:relative}
-#gameCanvas{background:#000a04;display:block;touch-action:none}
+#gameCanvas{background:#000a04;display:block;width:100%;height:100%;touch-action:none}
 .mobile-controls{width:100%;padding:10px 10px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));background:rgba(0,10,5,0.95);border-top:1px solid var(--neon-green-dim);display:flex;justify-content:space-between;align-items:center;gap:8px;z-index:5}
 .ctrl-btn{padding:18px 28px;border:1px solid var(--neon-green-dim);color:var(--neon-green);font-family:inherit;font-size:18px;background:rgba(0,20,10,0.8);cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;min-width:80px;min-height:56px;text-align:center}
 .ctrl-btn:active{background:rgba(0,255,65,0.15);box-shadow:var(--border-glow)}
@@ -2187,11 +2187,7 @@ function resizeCanvas(){
   const wrap=document.querySelector('.game-canvas-wrap');if(!wrap)return;
   const cw=wrap.clientWidth,ch=wrap.clientHeight;
   if(cw===0||ch===0)return;// skip if DOM not laid out yet
-  // Fixed internal resolution (400px base width) for consistent game speed.
-  // CSS stretches the canvas to fill the screen. Game logic always uses W≈400.
-  const REF_W=400;
-  canvas.width=REF_W;canvas.height=Math.round(REF_W*ch/cw);
-  canvas.style.width=cw+'px';canvas.style.height=ch+'px';
+  canvas.width=cw;canvas.height=ch;
   W=canvas.width;H=canvas.height;groundY=H*GROUND_Y_RATIO;
 }
 
