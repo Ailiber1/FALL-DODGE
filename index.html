@@ -1431,11 +1431,20 @@ function gameLoop(){
   if(GS.animationId){cancelAnimationFrame(GS.animationId);}
   GS.animationId=requestAnimationFrame(gameLoop);
   const now=Date.now();
-  // Delta time: Safari only (Chrome is always dt=1, zero change)
-  const pNow=performance.now();
-  const rawDt=GS.lastFrameTime?pNow-GS.lastFrameTime:16.67;
-  GS.lastFrameTime=pNow;
-  const dt=GS._isSafari?Math.min(Math.max(rawDt/16.67,1),3):1;
+  // Safari speed fix: count actual frames over time to measure real fps
+  // Chrome: dt=1 always (zero change). Safari: dt=60/actualFps.
+  let dt=1;
+  if(GS._isSafari){
+    if(!GS._fpsM)GS._fpsM={s:now,f:0,dt:1};
+    GS._fpsM.f++;
+    const el=now-GS._fpsM.s;
+    if(el>=500||(GS._fpsM.dt===1&&el>=200&&GS._fpsM.f>=3)){
+      const fps=GS._fpsM.f*1000/el;
+      GS._fpsM.dt=fps<55?60/fps:1;
+      GS._fpsM.f=0;GS._fpsM.s=now;
+    }
+    dt=GS._fpsM.dt;
+  }
   GS.elapsed=now-GS.gameStartTime;
   // Time Attack mode
   if(GS.gameMode==='timeAttack'){
