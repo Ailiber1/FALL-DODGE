@@ -2648,7 +2648,15 @@ function startMultiResultCountdown(){
   // Listen for ready state changes
   multiResultReadyRef=roomRef.child('readyPlayers');
   multiResultReadyRef.on('value',snap=>{
-    updateReadyDisplay(snap.val());
+    const readyPlayers=snap.val();
+    updateReadyDisplay(readyPlayers);
+    // If all players are ready, skip countdown and resolve immediately
+    const readyCount=readyPlayers?Object.keys(readyPlayers).length:0;
+    const totalCount=GS.players?Object.keys(GS.players).filter(k=>GS.players[k]).length:0;
+    if(readyCount>=2&&readyCount>=totalCount){
+      clearInterval(multiResultTimer);multiResultTimer=null;
+      resolveMultiResult();
+    }
   });
   renderFooter();
   // Countdown timer
