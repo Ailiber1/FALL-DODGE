@@ -1479,13 +1479,35 @@ function gameLoop(){
       }
     });
   }
-  // Update power-ups (non-host: display only, no pickup — prevents shared invincibility bug)
+  // Update power-ups
   for(let i=GS.powerUpItems.length-1;i>=0;i--){
     const pu=GS.powerUpItems[i];
     pu.y+=pu.speed;
     if(pu.y>H){GS.powerUpItems.splice(i,1);continue;}
-    if(!isNonHost&&pxAbs<pu.x+pu.w&&pxAbs+GS.playerWidth>pu.x&&pyAbs<pu.y+pu.h&&pyAbs+GS.playerHeight>pu.y){
-      activatePowerUp(pu.puType);GS.powerUpItems.splice(i,1);
+    if(GS.isMulti){
+      // Multiplayer: host checks collision for ALL players (authoritative)
+      if(GS.isHost){
+        let picked=false;
+        // Host's own character (exact local position)
+        if(pxAbs<pu.x+pu.w&&pxAbs+GS.playerWidth>pu.x&&pyAbs<pu.y+pu.h&&pyAbs+GS.playerHeight>pu.y){
+          activatePowerUp(pu.puType);picked=true;
+        }
+        // Check other players using their synced positions
+        if(!picked){Object.entries(GS.players).forEach(([idx,p])=>{
+          if(picked||parseInt(idx)===GS.playerIndex||!p||!p.alive)return;
+          const rpx=p.x/100*W;
+          if(rpx<pu.x+pu.w&&rpx+GS.playerWidth>pu.x&&pyAbs<pu.y+pu.h&&pyAbs+GS.playerHeight>pu.y){
+            picked=true;SyncLayer.roomRef.child('puActivation').set({pi:parseInt(idx),pt:pu.puType,ts:Date.now()});
+          }
+        });}
+        if(picked){GS.powerUpItems.splice(i,1);}
+      }
+      // Non-host: display only, host handles all pickups
+    } else {
+      // Solo mode
+      if(pxAbs<pu.x+pu.w&&pxAbs+GS.playerWidth>pu.x&&pyAbs<pu.y+pu.h&&pyAbs+GS.playerHeight>pu.y){
+        activatePowerUp(pu.puType);GS.powerUpItems.splice(i,1);
+      }
     }
   }
   // Update active power-ups
@@ -1836,7 +1858,7 @@ function showResult(){
       const totalScore=sorted.reduce((s,e)=>s+(e[1].score||0),0);
       const winnerIdx=sorted[0]?sorted[0][0]:0;
       const winnerName=sorted[0]?sorted[0][1].username:'P1';
-      if(!isCoop&&winnerName)recordMultiWin(winnerName);
+      if(!isCoop&&winnerName&&GS.isHost)recordMultiWin(winnerName);
       SoundMgr.playSE(isCoop?'lose':(parseInt(winnerIdx)===GS.playerIndex?'win':'lose'));
       let html='<h2>'+t('game_set')+'</h2>';
       html+='<div class="winner-area">';
@@ -2322,6 +2344,16 @@ function startMultiGame(){
       spawnWallCrushLocal(wc.gapXR,wc.gapRatio,wc.warnDur);
     });
     SyncLayer.listeners.push(wcRef);
+    // Listen for power-up activations from host
+    let lastPuActTs=0;
+    const puActRef=database.ref('rooms/'+GS.roomId+'/puActivation');
+    puActRef.on('value',snap=>{
+      const act=snap.val();
+      if(!act||act.ts<=lastPuActTs||act.pi!==GS.playerIndex)return;
+      lastPuActTs=act.ts;
+      activatePowerUp(act.pt);
+    });
+    SyncLayer.listeners.push(puActRef);
   }
   SyncLayer.onPlayersUpdate(players=>{
     if(!players)return;
