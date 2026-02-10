@@ -2372,6 +2372,7 @@ function joinRoom(){
 function setupLobby(roomId){
   document.getElementById('lobby-title').textContent='ONLINE ROOM // '+roomId;
   document.getElementById('btn-start-game').style.display='none';
+  let lobbyHadMultiple=false;
   const roomRef=database.ref('rooms/'+roomId);
   // --- Rule Selection UI ---
   const isHost=GS.isHost||GS.playerIndex===0;
@@ -2474,7 +2475,18 @@ function setupLobby(roomId){
       div.innerHTML='<div class="dot" style="background:'+displayColor+'"></div><span style="color:'+displayColor+'">● '+name+'</span>';
       container.appendChild(div);
     }
-    const playerCount=Object.keys(players).length;
+    const playerCount=Object.keys(players).filter(k=>players[k]).length;
+    if(playerCount>=2)lobbyHadMultiple=true;
+    // If alone in lobby after others left, force back to title
+    if(lobbyHadMultiple&&playerCount<=1&&GS.currentScreen==='lobby'){
+      const alone=playerCount===1&&players[GS.playerIndex];
+      if(alone){
+        showToast(currentLang==='ja'?'⚠ 他のプレイヤーが全員退出しました':'⚠ All other players left',3000);
+        cleanupRoom(roomId,GS.playerIndex);SyncLayer.disconnect();GS.isMulti=false;GS.roomId=null;
+        SoundMgr.playBGM('FALL DODGE_OP.mp3');showScreen('title');
+        return;
+      }
+    }
     if(isHost){
       document.getElementById('btn-start-game').style.display=playerCount>=2?'block':'none';
     }
