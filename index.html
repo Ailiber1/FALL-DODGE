@@ -2377,6 +2377,14 @@ function joinRoom(){
         SoundMgr.playSE('error');
         return;
       }
+      // Check for duplicate username in room
+      const myName=(GS.username||'').trim();
+      const dupName=Object.values(players).some(p=>p&&p.username&&p.username.trim()===myName);
+      if(myName&&dupName){
+        showToast(currentLang==='ja'?'⚠ 「'+myName+'」は既に使用中です。\n別のユーザー名で登録してください。':'⚠ "'+myName+'" is already in use.\nPlease choose a different username.',4000);
+        SoundMgr.playSE('error');
+        return;
+      }
       // Find first empty slot (0-3) instead of using count as index
       let emptySlot=-1;
       for(let i=0;i<4;i++){if(!players[i]){emptySlot=i;break;}}
