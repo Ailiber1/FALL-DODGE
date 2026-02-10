@@ -1931,11 +1931,18 @@ function submitScore(){
   // Anti-cheat: allow combo multiplier (max x10) + movement scoring
   const maxPossible=Math.floor(elapsed/300)*10+(GS.isSecretStage?Math.floor(elapsed/50):0);
   if(GS.score>maxPossible)return;
-  database.ref('rankings').push({
-    username:GS.username,score:GS.score,difficulty:GS.difficulty,
-    gameMode:GS.gameMode,stage:GS.currentStage,elapsed,
-    isSecretStage:GS.isSecretStage||false,
-    timestamp:firebase.database.ServerValue.TIMESTAMP
+  const cat=GS.gameMode==='scoreAttack'?'sa':'st';
+  const key=GS.username.replace(/[.#$\/\[\]]/g,'_')+'__'+cat;
+  database.ref('rankings/'+key).transaction(current=>{
+    if(current===null||GS.score>current.score){
+      return{
+        username:GS.username,score:GS.score,difficulty:GS.difficulty,
+        gameMode:GS.gameMode,stage:GS.currentStage,elapsed,
+        isSecretStage:GS.isSecretStage||false,
+        timestamp:firebase.database.ServerValue.TIMESTAMP
+      };
+    }
+    return;// abort: keep current higher score
   });
 }
 function recordMultiWin(winnerName){
@@ -1944,6 +1951,31 @@ function recordMultiWin(winnerName){
   ref.transaction(current=>{
     if(current===null)return{wins:1,username:winnerName,lastWin:Date.now()};
     return{wins:(current.wins||0)+1,username:winnerName,lastWin:Date.now()};
+  });
+}
+// One-time migration: consolidate duplicate ranking entries, keep only highest score per player
+function migrateRankings(){
+  database.ref('meta/rankClean').once('value',snap=>{
+    if(snap.val())return;
+    database.ref('rankings').once('value',rSnap=>{
+      const best={};const allKeys=[];
+      rSnap.forEach(c=>{
+        const k=c.key;const v=c.val();
+        allKeys.push(k);
+        if(!v||!v.username||typeof v.score!=='number')return;
+        const cat=v.gameMode==='scoreAttack'?'sa':'st';
+        const bk=v.username.replace(/[.#$\/\[\]]/g,'_')+'__'+cat;
+        if(!best[bk]||v.score>best[bk].score)best[bk]={score:v.score,data:v};
+      });
+      const updates={};
+      allKeys.forEach(k=>{updates[k]=null;});// delete all old entries
+      Object.entries(best).forEach(([bk,info])=>{updates[bk]=info.data;});// write best scores
+      if(Object.keys(updates).length>0){
+        database.ref('rankings').update(updates).then(()=>{
+          database.ref('meta/rankClean').set(true);
+        });
+      }
+    });
   });
 }
 
@@ -3129,6 +3161,7 @@ function init(){
   setTimeout(goTitle,2500);
   document.getElementById('splash-screen').addEventListener('click',goTitle);
   setupInputs();setupUI();SecretStage.listenOnTitle();
+  migrateRankings();// one-time cleanup of duplicate ranking entries
   // Resume BGM on first user interaction (browser autoplay policy)
   const unlockAudio=()=>{SoundMgr.resumePendingBGM();document.removeEventListener('click',unlockAudio);document.removeEventListener('touchstart',unlockAudio);document.removeEventListener('keydown',unlockAudio);};
   document.addEventListener('click',unlockAudio);document.addEventListener('touchstart',unlockAudio);document.addEventListener('keydown',unlockAudio);
