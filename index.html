@@ -1415,7 +1415,7 @@ function applyMultiStageAdvance(newStage){
   GS.stageTransitionText=stgName+' - '+(currentLang==='ja'?label.labelJa:label.label);
   SoundMgr.playSE('stage');SoundMgr.changeBGMForStage(GS.currentStage);
   // Pause game and show countdown
-  GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);
+  GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);if(GS._bgInterval){clearInterval(GS._bgInterval);GS._bgInterval=null;}
   // Restore badge opacity for revived players
   Object.entries(GS.players).forEach(([idx,p])=>{
     const badge=document.getElementById('badge-'+idx);
@@ -1427,12 +1427,36 @@ function applyMultiStageAdvance(newStage){
   });
 }
 
+// ===== Background Tab Handling (Multiplayer Host) =====
+// When host's tab is backgrounded, requestAnimationFrame stops,
+// which halts object spawning/sync for all players.
+// Switch to setInterval so the game loop keeps running.
+GS._bgInterval=null;
+document.addEventListener('visibilitychange',function(){
+  if(!GS.gameActive)return;
+  if(!GS.isMulti||!GS.isHost)return;
+  if(document.hidden){
+    // Tab hidden: cancel rAF, switch to setInterval
+    if(GS.animationId){cancelAnimationFrame(GS.animationId);GS.animationId=null;}
+    if(!GS._bgInterval)GS._bgInterval=setInterval(gameLoop,100);
+  }else{
+    // Tab visible: clear interval, resume rAF
+    if(GS._bgInterval){clearInterval(GS._bgInterval);GS._bgInterval=null;}
+    GS.lastFrameTime=0;// reset to avoid huge dt jump
+    if(GS.gameActive)gameLoop();
+  }
+});
+
 // ===== Game Loop =====
 function gameLoop(){
-  if(!GS.gameActive){return;}
-  // Always cancel previous frame to guarantee only ONE loop runs
-  if(GS.animationId){cancelAnimationFrame(GS.animationId);}
-  GS.animationId=requestAnimationFrame(gameLoop);
+  if(!GS.gameActive){
+    if(GS._bgInterval){clearInterval(GS._bgInterval);GS._bgInterval=null;}
+    return;
+  }
+  // Always cancel previous rAF to guarantee only ONE loop runs
+  if(GS.animationId){cancelAnimationFrame(GS.animationId);GS.animationId=null;}
+  // Only schedule rAF if tab is visible (not when called from setInterval)
+  if(!document.hidden)GS.animationId=requestAnimationFrame(gameLoop);
   const now=Date.now();
   const pnow=performance.now();
   const rawDt=GS.lastFrameTime>0?(pnow-GS.lastFrameTime):16.667;
@@ -1934,7 +1958,7 @@ function endGame(hit,cleared){
     return;
   }
   // Solo result
-  GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);
+  GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);if(GS._bgInterval){clearInterval(GS._bgInterval);GS._bgInterval=null;}
   setTimeout(()=>showResult(),500);
 }
 // Check if the match is decisively over based on game mode
@@ -1954,7 +1978,7 @@ function checkMultiEnd(){
   const isTimedStage=GS.multiStage<MULTI_STAGE.length-1;
   if(isMultiMatchDecided()){
     // Match decided - end immediately regardless of stage type
-    GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);
+    GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);if(GS._bgInterval){clearInterval(GS._bgInterval);GS._bgInterval=null;}
     // Signal all clients that game is finished
     if(GS.roomId)database.ref('rooms/'+GS.roomId+'/gameFinished').set(Date.now());
     showResult();
@@ -2245,7 +2269,7 @@ function resumeGame(){
 }
 function quitGame(){
   document.getElementById('pause-overlay').style.display='none';
-  GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);
+  GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);if(GS._bgInterval){clearInterval(GS._bgInterval);GS._bgInterval=null;}
   backToTitle();
 }
 
@@ -2666,7 +2690,7 @@ function startMultiGame(){
     if(!ts||resultShown)return;
     // Another client decided the match is over
     // Fetch latest player data before showing result to ensure correct winner
-    GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);
+    GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);if(GS._bgInterval){clearInterval(GS._bgInterval);GS._bgInterval=null;}
     SyncLayer.roomRef.child('players').once('value',pSnap=>{
       const latestPlayers=pSnap.val();
       if(latestPlayers){
@@ -2695,7 +2719,7 @@ function startMultiGame(){
       if(badge&&p&&!p.alive){badge.style.opacity='0.3';const teamTag=GS.multiMode==='team'?'['+(GS.teamAssign[parseInt(idx)]||'A')+'] ':'';badge.innerHTML='● '+teamTag+(p.username||PLAYER_COLORS[parseInt(idx)].name)+' ☠';}
     });
     if(isMultiMatchDecided()&&!resultShown){
-      GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);
+      GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);if(GS._bgInterval){clearInterval(GS._bgInterval);GS._bgInterval=null;}
       if(GS.roomId)database.ref('rooms/'+GS.roomId+'/gameFinished').set(Date.now());
       setTimeout(()=>showResult(),500);
     }
