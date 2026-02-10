@@ -2372,6 +2372,7 @@ function joinRoom(){
 function setupLobby(roomId){
   document.getElementById('lobby-title').textContent='ONLINE ROOM // '+roomId;
   document.getElementById('btn-start-game').style.display='none';
+  let lobbyHadMultiple=false;
   const roomRef=database.ref('rooms/'+roomId);
   // --- Rule Selection UI ---
   const isHost=GS.isHost||GS.playerIndex===0;
@@ -2474,7 +2475,18 @@ function setupLobby(roomId){
       div.innerHTML='<div class="dot" style="background:'+displayColor+'"></div><span style="color:'+displayColor+'">● '+name+'</span>';
       container.appendChild(div);
     }
-    const playerCount=Object.keys(players).length;
+    const playerCount=Object.keys(players).filter(k=>players[k]).length;
+    if(playerCount>=2)lobbyHadMultiple=true;
+    // If alone in lobby after others left, force back to title
+    if(lobbyHadMultiple&&playerCount<=1&&GS.currentScreen==='lobby'){
+      const alone=playerCount===1&&players[GS.playerIndex];
+      if(alone){
+        showToast(currentLang==='ja'?'⚠ 他のプレイヤーが全員退出しました':'⚠ All other players left',3000);
+        cleanupRoom(roomId,GS.playerIndex);SyncLayer.disconnect();GS.isMulti=false;GS.roomId=null;
+        SoundMgr.playBGM('FALL DODGE_OP.mp3');showScreen('title');
+        return;
+      }
+    }
     if(isHost){
       document.getElementById('btn-start-game').style.display=playerCount>=2?'block':'none';
     }
@@ -2587,6 +2599,7 @@ function startMultiGame(){
 // ===== Multi Result Countdown (LINKED BLOCKS style) =====
 let multiResultTimer=null;
 let multiResultReadyRef=null;
+let multiResultPlayersRef=null;
 function startMultiResultCountdown(){
   if(!GS.isMulti||!GS.roomId)return;
   const COUNTDOWN_SEC=20;
@@ -2645,10 +2658,35 @@ function startMultiResultCountdown(){
     }
     el.innerHTML=statusHtml;
   }
+  // Check if all remaining players are ready → skip countdown
+  function checkAllReady(){
+    roomRef.child('players').once('value',pSnap=>{
+      const currentPlayers=pSnap.val();
+      const currentTotal=currentPlayers?Object.keys(currentPlayers).filter(k=>currentPlayers[k]).length:0;
+      // Also update GS.players to reflect disconnections
+      if(currentPlayers)GS.players=currentPlayers;
+      roomRef.child('readyPlayers').once('value',rSnap=>{
+        const ready=rSnap.val();
+        const readyCount=ready?Object.keys(ready).length:0;
+        if(readyCount>=2&&readyCount>=currentTotal){
+          clearInterval(multiResultTimer);multiResultTimer=null;
+          resolveMultiResult();
+        }
+      });
+    });
+  }
   // Listen for ready state changes
   multiResultReadyRef=roomRef.child('readyPlayers');
   multiResultReadyRef.on('value',snap=>{
     updateReadyDisplay(snap.val());
+    checkAllReady();
+  });
+  // Listen for player disconnections during result screen
+  multiResultPlayersRef=roomRef.child('players');
+  multiResultPlayersRef.on('value',snap=>{
+    const currentPlayers=snap.val();
+    if(currentPlayers)GS.players=currentPlayers;
+    checkAllReady();
   });
   renderFooter();
   // Countdown timer
@@ -2695,6 +2733,7 @@ function resolveMultiResult(){
 function cleanupCountdown(){
   if(multiResultTimer){clearInterval(multiResultTimer);multiResultTimer=null;}
   if(multiResultReadyRef){multiResultReadyRef.off();multiResultReadyRef=null;}
+  if(multiResultPlayersRef){multiResultPlayersRef.off();multiResultPlayersRef=null;}
 }
 function cleanupRoom(roomId,playerIndex){
   if(!roomId)return;
