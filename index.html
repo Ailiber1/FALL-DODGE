@@ -1922,6 +1922,8 @@ function checkMultiEnd(){
   if(isMultiMatchDecided()){
     // Match decided - end immediately regardless of stage type
     GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);
+    // Signal all clients that game is finished
+    if(GS.roomId)database.ref('rooms/'+GS.roomId+'/gameFinished').set(Date.now());
     showResult();
     return;
   }
@@ -2509,6 +2511,8 @@ function startMultiGame(){
   SyncLayer.listeners.forEach(r=>r.off());SyncLayer.listeners=[];
   if(SyncLayer.roomRef)SyncLayer.roomRef.child('players').off('value');
   resetGameState();GS.isMulti=true;GS.cpuPlayers=[];
+  // Clear previous game-finished signal
+  if(SyncLayer.roomRef)SyncLayer.roomRef.child('gameFinished').remove();
   // Initialize multi stage system (start at stage 0 = internal stage 3)
   GS.multiStage=0;
   const ms0=MULTI_STAGE[0];
@@ -2575,6 +2579,16 @@ function startMultiGame(){
     });
     SyncLayer.listeners.push(msRef);
   }
+  // Listen for game-finished signal from any client
+  const gfRef=SyncLayer.roomRef.child('gameFinished');
+  gfRef.on('value',snap=>{
+    const ts=snap.val();
+    if(!ts||resultShown)return;
+    // Another client decided the match is over - end locally too
+    GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);
+    setTimeout(()=>showResult(),300);
+  });
+  SyncLayer.listeners.push(gfRef);
   SyncLayer.onPlayersUpdate(players=>{
     if(!players)return;
     // Preserve local player's authoritative score and alive status
@@ -2588,7 +2602,11 @@ function startMultiGame(){
       const badge=document.getElementById('badge-'+idx);
       if(badge&&p&&!p.alive){badge.style.opacity='0.3';const teamTag=GS.multiMode==='team'?'['+(GS.teamAssign[parseInt(idx)]||'A')+'] ':'';badge.innerHTML='● '+teamTag+(p.username||PLAYER_COLORS[parseInt(idx)].name)+' ☠';}
     });
-    if(isMultiMatchDecided()&&!resultShown){GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);setTimeout(()=>showResult(),500);}
+    if(isMultiMatchDecided()&&!resultShown){
+      GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);
+      if(GS.roomId)database.ref('rooms/'+GS.roomId+'/gameFinished').set(Date.now());
+      setTimeout(()=>showResult(),500);
+    }
   });
   showCountdown(()=>{
     GS.gameStartTime=Date.now();GS.stageStartTime=Date.now();GS.multiStageStartTime=Date.now();
