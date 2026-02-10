@@ -2187,11 +2187,12 @@ function resizeCanvas(){
   const wrap=document.querySelector('.game-canvas-wrap');if(!wrap)return;
   const cw=wrap.clientWidth,ch=wrap.clientHeight;
   if(cw===0||ch===0)return;// skip if DOM not laid out yet
-  // Fix: always use CSS pixel dimensions for game logic (ignore devicePixelRatio).
-  // This ensures consistent game speed across all devices/browsers.
-  canvas.width=cw;canvas.height=ch;
+  // Fixed internal resolution (400px base width) for consistent game speed.
+  // CSS stretches the canvas to fill the screen. Game logic always uses W≈400.
+  const REF_W=400;
+  canvas.width=REF_W;canvas.height=Math.round(REF_W*ch/cw);
   canvas.style.width=cw+'px';canvas.style.height=ch+'px';
-  W=cw;H=ch;groundY=H*GROUND_Y_RATIO;
+  W=canvas.width;H=canvas.height;groundY=H*GROUND_Y_RATIO;
 }
 
 // ===== Reset Game State =====
