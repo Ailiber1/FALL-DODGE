@@ -1931,9 +1931,9 @@ function submitScore(){
   // Anti-cheat: allow combo multiplier (max x10) + movement scoring
   const maxPossible=Math.floor(elapsed/300)*10+(GS.isSecretStage?Math.floor(elapsed/50):0);
   if(GS.score>maxPossible)return;
-  const cat=GS.gameMode==='scoreAttack'?'sa':'st';
-  const key=GS.username.replace(/[.#$\/\[\]]/g,'_')+'__'+cat;
-  database.ref('rankings/'+key).transaction(current=>{
+  const cat=GS.gameMode==='scoreAttack'?'scoreAttack':'stage';
+  const sKey=GS.username.replace(/[.#$\/\[\]]/g,'_');
+  database.ref('rankings/'+cat+'/'+sKey).transaction(current=>{
     if(current===null||GS.score>current.score){
       return{
         username:GS.username,score:GS.score,difficulty:GS.difficulty,
@@ -1947,34 +1947,53 @@ function submitScore(){
 }
 function recordMultiWin(winnerName){
   if(!winnerName)return;
-  const ref=database.ref('multiWins/'+winnerName);
+  const sKey=winnerName.replace(/[.#$\/\[\]]/g,'_');
+  const ref=database.ref('rankings/multi/'+sKey);
   ref.transaction(current=>{
     if(current===null)return{wins:1,username:winnerName,lastWin:Date.now()};
     return{wins:(current.wins||0)+1,username:winnerName,lastWin:Date.now()};
   });
 }
-// One-time migration: consolidate duplicate ranking entries, keep only highest score per player
+// One-time migration: restructure rankings into categories (scoreAttack/stage/multi)
 function migrateRankings(){
-  database.ref('meta/rankClean').once('value',snap=>{
+  database.ref('meta/rankCatClean').once('value',snap=>{
     if(snap.val())return;
-    database.ref('rankings').once('value',rSnap=>{
-      const best={};const allKeys=[];
-      rSnap.forEach(c=>{
-        const k=c.key;const v=c.val();
-        allKeys.push(k);
-        if(!v||!v.username||typeof v.score!=='number')return;
-        const cat=v.gameMode==='scoreAttack'?'sa':'st';
-        const bk=v.username.replace(/[.#$\/\[\]]/g,'_')+'__'+cat;
-        if(!best[bk]||v.score>best[bk].score)best[bk]={score:v.score,data:v};
-      });
-      const updates={};
-      allKeys.forEach(k=>{updates[k]=null;});// delete all old entries
-      Object.entries(best).forEach(([bk,info])=>{updates[bk]=info.data;});// write best scores
-      if(Object.keys(updates).length>0){
-        database.ref('rankings').update(updates).then(()=>{
-          database.ref('meta/rankClean').set(true);
+    const rootUpdates={};
+    let pending=2;
+    const done=()=>{
+      if(--pending>0)return;
+      if(Object.keys(rootUpdates).length>0){
+        database.ref().update(rootUpdates).then(()=>{
+          database.ref('meta/rankCatClean').set(true);
         });
       }
+    };
+    // Migrate flat ranking entries -> rankings/scoreAttack/ and rankings/stage/
+    database.ref('rankings').once('value',rSnap=>{
+      const best={};
+      rSnap.forEach(c=>{
+        const k=c.key;const v=c.val();
+        if(k==='scoreAttack'||k==='stage'||k==='multi')return;// skip category nodes
+        if(!v||!v.username||typeof v.score!=='number')return;
+        const cat=v.gameMode==='scoreAttack'?'scoreAttack':'stage';
+        const sKey=v.username.replace(/[.#$\/\[\]]/g,'_');
+        const fk=cat+'/'+sKey;
+        if(!best[fk]||v.score>best[fk].score)best[fk]={score:v.score,data:v};
+        rootUpdates['rankings/'+k]=null;// delete old flat entry
+      });
+      Object.entries(best).forEach(([fk,info])=>{rootUpdates['rankings/'+fk]=info.data;});
+      done();
+    });
+    // Migrate multiWins -> rankings/multi/
+    database.ref('multiWins').once('value',mSnap=>{
+      mSnap.forEach(c=>{
+        const k=c.key;const v=c.val();
+        if(!v||!v.username)return;
+        const sKey=v.username.replace(/[.#$\/\[\]]/g,'_');
+        rootUpdates['rankings/multi/'+sKey]=v;
+        rootUpdates['multiWins/'+k]=null;// delete old entry
+      });
+      done();
     });
   });
 }
@@ -2585,8 +2604,8 @@ function loadRankings(mode){
   });
   const list=document.getElementById('ranking-list');list.innerHTML='<div style="color:var(--text-dim)">読み込み中...</div>';
   if(mode==='multi'){
-    // Multi ranking: wins count
-    database.ref('multiWins').once('value',snap=>{
+    // Multi ranking: wins count (now under rankings/multi/)
+    database.ref('rankings/multi').once('value',snap=>{
       const entries=[];
       snap.forEach(c=>{const v=c.val();if(v&&v.username&&v.wins)entries.push(v);});
       entries.sort((a,b)=>b.wins-a.wins);
@@ -2606,14 +2625,11 @@ function loadRankings(mode){
       });
     }).catch(()=>{list.innerHTML='<div style="color:var(--text-dim)">取得失敗</div>';});
   } else {
-    database.ref('rankings').orderByChild('score').limitToLast(100).once('value',snap=>{
+    const cat=mode==='scoreAttack'?'scoreAttack':'stage';
+    database.ref('rankings/'+cat).orderByChild('score').limitToLast(100).once('value',snap=>{
       const entries=[];snap.forEach(c=>{const v=c.val();entries.push(v);});
-      const filtered=entries.filter(e=>mode==='scoreAttack'?e.gameMode==='scoreAttack':e.gameMode!=='scoreAttack');
-      filtered.sort((a,b)=>b.score-a.score);
-      // Deduplicate: keep only the highest score per username
-      const seen=new Set();
-      const unique=filtered.filter(e=>{if(!e.username||seen.has(e.username))return false;seen.add(e.username);return true;});
-      const top10=unique.slice(0,10);
+      entries.sort((a,b)=>b.score-a.score);
+      const top10=entries.slice(0,10);
       if(!top10.length){list.innerHTML='<div style="color:var(--text-dim)">'+(currentLang==='ja'?'まだランキングデータがありません':'No ranking data yet')+'</div>';return;}
       list.innerHTML='';top10.forEach((e,i)=>{
         const div=document.createElement('div');div.className='ranking-entry';
