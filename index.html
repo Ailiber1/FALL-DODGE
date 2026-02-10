@@ -2377,11 +2377,14 @@ function joinRoom(){
         SoundMgr.playSE('error');
         return;
       }
-      // Check for duplicate username in room
+      // Check for duplicate username in room → return to title screen to change name
       const myName=(GS.username||'').trim();
       const dupName=Object.values(players).some(p=>p&&p.username&&p.username.trim()===myName);
       if(myName&&dupName){
-        showToast(currentLang==='ja'?'⚠ 「'+myName+'」は既に使用中です。\n別のユーザー名で登録してください。':'⚠ "'+myName+'" is already in use.\nPlease choose a different username.',4000);
+        hideModal('multi-modal');
+        document.getElementById('username-error').style.display='block';
+        document.getElementById('username-error').textContent=currentLang==='ja'?'⚠ 「'+myName+'」はルーム内で既に使用中です。別のユーザー名で登録してください。':'⚠ "'+myName+'" is already in use in the room. Please choose a different name.';
+        document.getElementById('username-input').focus();
         SoundMgr.playSE('error');
         return;
       }
@@ -3002,9 +3005,10 @@ function setupUI(){
       document.getElementById('username-error').textContent=currentLang==='ja'?'マルチプレイにはユーザー名の登録が必要です':'Username required for Multiplayer';
       SoundMgr.playSE('error');return;
     }
-    if(GS.username===nameVal&&!GS.isGuest){setupMultiModal();showModal('multi-modal');return;}
+    const wasRegistered=GS.username===nameVal&&!GS.isGuest;
     try{await registerUser(nameVal);GS.username=nameVal;GS.isGuest=false;localStorage.setItem('fd_username',nameVal);
-      showToast((currentLang==='ja'?'登録完了: ':'Registered: ')+nameVal);document.getElementById('username-error').style.display='none';
+      if(!wasRegistered)showToast((currentLang==='ja'?'登録完了: ':'Registered: ')+nameVal);
+      document.getElementById('username-error').style.display='none';
       setupMultiModal();showModal('multi-modal');
     }catch(err){if(err==='taken'){document.getElementById('username-error').style.display='block';
       document.getElementById('username-error').textContent=currentLang==='ja'?'このネームは他のユーザーが使用中です':'This name is already taken';SoundMgr.playSE('error');}}
