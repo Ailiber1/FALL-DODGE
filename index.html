@@ -2528,7 +2528,7 @@ function setupLobby(roomId){
         return;
       }
     }
-    if(isHost){
+    if(GS.isHost){
       document.getElementById('btn-start-game').style.display=playerCount>=2?'block':'none';
     }
     refreshTeamUI();
