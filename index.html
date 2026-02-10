@@ -2644,7 +2644,8 @@ function loadRankings(mode){
         const div=document.createElement('div');div.className='ranking-entry';
         const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
         const clrLbl=currentLang==='ja'?' クリア':' Clear';
-        const info=mode==='scoreAttack'?'':'  Stage '+e.stage+clrLbl;
+        const stgLbl=e.isSecretStage?'???':e.stage;
+        const info=mode==='scoreAttack'?'':'  Stage '+stgLbl+clrLbl;
         const scoreLbl=currentLang==='ja'?'スコア: ':'Score: ';
         div.innerHTML='<span>'+medal+(i+1)+'. '+e.username+info+'</span><span>'+scoreLbl+e.score+'</span>';list.appendChild(div);
       });
