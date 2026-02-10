@@ -1428,17 +1428,22 @@ function applyMultiStageAdvance(newStage){
 }
 
 // ===== Background Tab Handling =====
-// Solo: auto-pause when tab hidden, auto-resume when visible
-// Multi host: switch to setInterval so spawning/sync continues
+// Solo: auto-pause when tab hidden
+// Multi: kill player who leaves (prevent free invincibility)
+// Multi host: also keep game loop alive via setInterval for spawning/sync
 GS._bgInterval=null;
 document.addEventListener('visibilitychange',function(){
   if(!GS.gameActive)return;
   if(document.hidden){
-    if(GS.isMulti&&GS.isHost){
-      // Multi host: keep game loop alive via setInterval
-      if(GS.animationId){cancelAnimationFrame(GS.animationId);GS.animationId=null;}
-      if(!GS._bgInterval)GS._bgInterval=setInterval(gameLoop,100);
-    }else if(!GS.isMulti){
+    if(GS.isMulti){
+      // Multi: player who leaves dies immediately (no free invincibility)
+      if(GS.isAlive)endGame(true);
+      if(GS.isHost){
+        // Host: keep game loop alive for spawning/sync
+        if(GS.animationId){cancelAnimationFrame(GS.animationId);GS.animationId=null;}
+        if(!GS._bgInterval)GS._bgInterval=setInterval(gameLoop,100);
+      }
+    }else{
       // Solo: auto-pause
       pauseGame();
     }
