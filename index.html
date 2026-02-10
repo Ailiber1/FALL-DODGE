@@ -1427,23 +1427,27 @@ function applyMultiStageAdvance(newStage){
   });
 }
 
-// ===== Background Tab Handling (Multiplayer Host) =====
-// When host's tab is backgrounded, requestAnimationFrame stops,
-// which halts object spawning/sync for all players.
-// Switch to setInterval so the game loop keeps running.
+// ===== Background Tab Handling =====
+// Solo: auto-pause when tab hidden, auto-resume when visible
+// Multi host: switch to setInterval so spawning/sync continues
 GS._bgInterval=null;
 document.addEventListener('visibilitychange',function(){
   if(!GS.gameActive)return;
-  if(!GS.isMulti||!GS.isHost)return;
   if(document.hidden){
-    // Tab hidden: cancel rAF, switch to setInterval
-    if(GS.animationId){cancelAnimationFrame(GS.animationId);GS.animationId=null;}
-    if(!GS._bgInterval)GS._bgInterval=setInterval(gameLoop,100);
+    if(GS.isMulti&&GS.isHost){
+      // Multi host: keep game loop alive via setInterval
+      if(GS.animationId){cancelAnimationFrame(GS.animationId);GS.animationId=null;}
+      if(!GS._bgInterval)GS._bgInterval=setInterval(gameLoop,100);
+    }else if(!GS.isMulti){
+      // Solo: auto-pause
+      pauseGame();
+    }
   }else{
-    // Tab visible: clear interval, resume rAF
     if(GS._bgInterval){clearInterval(GS._bgInterval);GS._bgInterval=null;}
-    GS.lastFrameTime=0;// reset to avoid huge dt jump
-    if(GS.gameActive)gameLoop();
+    if(GS.isMulti&&GS.isHost){
+      GS.lastFrameTime=0;
+      if(GS.gameActive)gameLoop();
+    }
   }
 });
 
