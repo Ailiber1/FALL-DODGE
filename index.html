@@ -2393,12 +2393,35 @@ function setupLobby(roomId){
   let lobbyHadMultiple=false;
   const roomRef=database.ref('rooms/'+roomId);
   // --- Rule Selection UI ---
-  const isHost=GS.isHost||GS.playerIndex===0;
-  GS.isHost=isHost;
-  const hostTag=document.getElementById('lobby-rules-host-tag');
-  const readonlyMsg=document.getElementById('lobby-rules-readonly');
-  hostTag.style.display=isHost?'inline':'none';
-  readonlyMsg.style.display=isHost?'none':'block';
+  // Determine host from Firebase hostIndex (fallback: playerIndex 0)
+  let lobbyHostIdx=GS.isHost?GS.playerIndex:0;
+  function applyHostState(hostIdx){
+    lobbyHostIdx=hostIdx;
+    GS.isHost=GS.playerIndex===hostIdx;
+    const hostTag=document.getElementById('lobby-rules-host-tag');
+    const readonlyMsg=document.getElementById('lobby-rules-readonly');
+    hostTag.style.display=GS.isHost?'inline':'none';
+    readonlyMsg.style.display=GS.isHost?'none':'block';
+    // Re-enable/disable buttons
+    document.querySelectorAll('#lobby-mode-buttons .btn').forEach(b=>{
+      b.style.pointerEvents=GS.isHost?'auto':'none';b.style.opacity=GS.isHost?'1':'0.7';
+    });
+    document.querySelectorAll('#lobby-diff-buttons .btn').forEach(b=>{
+      b.style.pointerEvents=GS.isHost?'auto':'none';b.style.opacity=GS.isHost?'1':'0.7';
+    });
+    const startBtn=document.getElementById('btn-start-game');
+    const playerCount=GS.players?Object.keys(GS.players).filter(k=>GS.players[k]).length:0;
+    if(GS.isHost){startBtn.style.display=playerCount>=2?'block':'none';}
+    else{startBtn.style.display='none';}
+  }
+  roomRef.child('hostIndex').once('value',snap=>{
+    const hIdx=snap.val();
+    applyHostState(hIdx!==null?hIdx:0);
+  });
+  roomRef.child('hostIndex').on('value',snap=>{
+    const hIdx=snap.val();
+    if(hIdx!==null)applyHostState(hIdx);
+  });
   // Build mode buttons
   const modeContainer=document.getElementById('lobby-mode-buttons');modeContainer.innerHTML='';
   const teamPanel=document.getElementById('lobby-team-assign');
@@ -2413,7 +2436,7 @@ function setupLobby(roomId){
       const tc=TEAM_COLORS[team];
       const row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:8px;margin:4px 0;padding:4px 8px;border:1px solid '+tc.hex+';';
       row.innerHTML='<span style="color:'+tc.hex+';min-width:70px;font-size:12px">'+tc.name+' - '+(p.username||'P'+(i+1))+'</span>';
-      if(isHost){
+      if(GS.isHost){
         const btnA=document.createElement('button');btnA.className='btn'+(team==='A'?' selected':'');btnA.textContent='A';
         btnA.style.cssText='padding:3px 12px;margin:0 2px;font-size:11px;min-width:0;width:auto;border-color:'+TEAM_COLORS.A.hex+';color:'+TEAM_COLORS.A.hex;
         const btnB=document.createElement('button');btnB.className='btn'+(team==='B'?' selected':'');btnB.textContent='B';
@@ -2429,29 +2452,29 @@ function setupLobby(roomId){
   }
   [{key:'individual',label:'multi_individual'},{key:'team',label:'multi_team'},{key:'coop',label:'multi_coop'}].forEach(m=>{
     const b=document.createElement('button');b.className='btn'+(GS.multiMode===m.key?' selected':'');b.textContent=t(m.label);b.dataset.mode=m.key;
-    if(isHost){
-      b.addEventListener('click',()=>{
-        GS.multiMode=m.key;
-        modeContainer.querySelectorAll('.btn').forEach(x=>x.classList.remove('selected'));
-        b.classList.add('selected');SoundMgr.playSE('click');
-        roomRef.child('gameMode').set(m.key);
-        refreshTeamUI();
-      });
-    } else {b.style.pointerEvents='none';b.style.opacity='0.7';}
+    b.addEventListener('click',()=>{
+      if(!GS.isHost)return;
+      GS.multiMode=m.key;
+      modeContainer.querySelectorAll('.btn').forEach(x=>x.classList.remove('selected'));
+      b.classList.add('selected');SoundMgr.playSE('click');
+      roomRef.child('gameMode').set(m.key);
+      refreshTeamUI();
+    });
+    if(!GS.isHost){b.style.pointerEvents='none';b.style.opacity='0.7';}
     modeContainer.appendChild(b);
   });
   // Build difficulty buttons
   const diffContainer=document.getElementById('lobby-diff-buttons');diffContainer.innerHTML='';
   ['easy','normal','hard'].forEach(d=>{
     const b=document.createElement('button');b.className='btn'+(GS.difficulty===d?' selected':'');b.textContent=t('difficulty_'+d);b.dataset.diff=d;
-    if(isHost){
-      b.addEventListener('click',()=>{
-        GS.difficulty=d;
-        diffContainer.querySelectorAll('.btn').forEach(x=>x.classList.remove('selected'));
-        b.classList.add('selected');SoundMgr.playSE('click');
-        roomRef.child('difficulty').set(d);
-      });
-    } else {b.style.pointerEvents='none';b.style.opacity='0.7';}
+    b.addEventListener('click',()=>{
+      if(!GS.isHost)return;
+      GS.difficulty=d;
+      diffContainer.querySelectorAll('.btn').forEach(x=>x.classList.remove('selected'));
+      b.classList.add('selected');SoundMgr.playSE('click');
+      roomRef.child('difficulty').set(d);
+    });
+    if(!GS.isHost){b.style.pointerEvents='none';b.style.opacity='0.7';}
     diffContainer.appendChild(b);
   });
   // Listen for rule changes from host (for non-host players)
@@ -2485,7 +2508,7 @@ function setupLobby(roomId){
     for(let i=0;i<4;i++){const p=players[i];const pc=PLAYER_COLORS[i];
       const div=document.createElement('div');div.className='lobby-player'+(p?'':' empty');
       const isYou=i===GS.playerIndex;
-      const isRoomHost=i===0;
+      const isRoomHost=i===lobbyHostIdx;
       // Team mode: show team color
       const displayColor=(GS.multiMode==='team'&&p)?TEAM_COLORS[GS.teamAssign[i]||'A'].hex:pc.hex;
       const teamTag=(GS.multiMode==='team'&&p)?' [TEAM '+(GS.teamAssign[i]||'A')+']':'';
@@ -2764,6 +2787,11 @@ function resolveMultiResult(){
           roomRef.child('players/'+idx).remove();
         }
       });
+      // Assign new host: smallest index among ready players
+      const readyIndices=Object.keys(ready).map(Number).sort((a,b)=>a-b);
+      const newHostIdx=readyIndices[0];
+      roomRef.child('hostIndex').set(newHostIdx);
+      GS.isHost=GS.playerIndex===newHostIdx;
       roomRef.child('status').set('waiting');
       roomRef.child('players/'+GS.playerIndex).update({alive:true,score:0,x:50});
       showScreen('lobby');setupLobby(GS.roomId);
