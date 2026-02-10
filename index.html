@@ -533,7 +533,8 @@ const GS = {
   cpuPlayers:[],
   reverse:false,
   isAlive:true,
-  comboTriggered:{},scoreTriggered:{},timeTriggered:{}
+  comboTriggered:{},scoreTriggered:{},timeTriggered:{},
+  lastFrameTime:0
 };
 
 // ===== Canvas & Globals =====
@@ -890,8 +891,8 @@ const Weather = {
       cx.fillStyle='rgba(255,255,255,0.7)';cx.fillRect(0,0,W,H);
     }
   },
-  applyToObject(obj){
-    if(GS.weather==='storm')obj.x+=(Math.random()>0.5?2:-2);
+  applyToObject(obj,dt){
+    if(GS.weather==='storm')obj.x+=(Math.random()>0.5?2:-2)*(dt||1);
   }
 };
 
@@ -902,27 +903,28 @@ const Dash = {
     if(GS.dashRecovery)return;// still getting up
     GS.dashActive=true;GS.dashInvincible=true;GS.dashLastTime=Date.now();GS.dashDir=dir;
     SoundMgr.playSE('dash');Commentary.onDash();
-    const dist=150;const slideFrames=20;const recoveryFrames=12;
-    let frames=0;
+    const dist=150;const slideDur=333;const recoveryDur=200;// ms (was 20/12 frames @60fps)
+    const dashStart=Date.now();
     const dashAnim=()=>{
       if(!GS.gameActive){GS.dashActive=false;GS.dashInvincible=false;GS.dashRecovery=false;return;}
-      if(frames<slideFrames){
+      const elapsed=Date.now()-dashStart;
+      if(elapsed<slideDur){
         // Ease-out deceleration: fast start, slow end (like sliding friction)
-        const progress=frames/slideFrames;
-        const easedSpeed=dir*(dist/slideFrames)*(1-progress*0.85);
+        const progress=elapsed/slideDur;
+        const frameDt=Math.min((Date.now()-(GS._dashLastFrame||dashStart))/16.67,3);
+        GS._dashLastFrame=Date.now();
+        const easedSpeed=dir*(dist/20)*(1-progress*0.85)*frameDt;
         GS.playerX+=easedSpeed/W*100;
         GS.playerX=Math.max(0,Math.min(100-GS.playerWidth/W*100,GS.playerX));
-        frames++;requestAnimationFrame(dashAnim);
-      } else if(frames===slideFrames){
-        // Slide done → start recovery (getting up)
-        GS.dashInvincible=false;GS.dashActive=false;GS.dashRecovery=true;
-        frames++;requestAnimationFrame(dashAnim);
-      } else if(frames<slideFrames+recoveryFrames){
-        frames++;requestAnimationFrame(dashAnim);
+        requestAnimationFrame(dashAnim);
+      } else if(elapsed<slideDur+recoveryDur){
+        if(GS.dashActive){GS.dashInvincible=false;GS.dashActive=false;GS.dashRecovery=true;}
+        requestAnimationFrame(dashAnim);
       } else {
-        GS.dashRecovery=false;// fully recovered
+        GS.dashRecovery=false;GS._dashLastFrame=0;
       }
     };
+    GS._dashLastFrame=dashStart;
     dashAnim();
   },
   getGaugePercent(){
@@ -1418,7 +1420,7 @@ function applyMultiStageAdvance(newStage){
   });
   showCountdown(()=>{
     GS.multiStageStartTime=Date.now();GS.stageStartTime=Date.now();
-    GS.gameActive=true;gameLoop();
+    GS.lastFrameTime=0;GS.gameActive=true;gameLoop();
   });
 }
 
@@ -1428,8 +1430,12 @@ function gameLoop(){
   // Always cancel previous frame to guarantee only ONE loop runs
   if(GS.animationId){cancelAnimationFrame(GS.animationId);}
   GS.animationId=requestAnimationFrame(gameLoop);
-  GS.elapsed=Date.now()-GS.gameStartTime;
   const now=Date.now();
+  // Delta time: normalize to 60fps (16.67ms per frame)
+  const rawDt=GS.lastFrameTime?now-GS.lastFrameTime:16.67;
+  const dt=Math.min(rawDt/16.67,3);// cap at 3x to avoid huge jumps on tab switch
+  GS.lastFrameTime=now;
+  GS.elapsed=now-GS.gameStartTime;
   // Time Attack mode
   if(GS.gameMode==='timeAttack'){
     GS.timeRemaining=60000-GS.elapsed;
@@ -1437,7 +1443,7 @@ function gameLoop(){
   }
   // Move player (skip if dead in spectator mode)
   const spd=GS.speedBoost?GS.moveSpeed*2:GS.moveSpeed;
-  const pxStep=spd/W*100;
+  const pxStep=spd/W*100*dt;
   const mL=GS.confused?GS.moveRight:GS.moveLeft;
   const mR=GS.confused?GS.moveLeft:GS.moveRight;
   if(GS.isAlive&&mL)GS.playerX=Math.max(0,GS.playerX-pxStep);
@@ -1467,7 +1473,7 @@ function gameLoop(){
       cpu.dir=CPUBrain.decide(cpu,GS.fallingObjects,GS.powerUpItems,cpu.level);
     }
     // Move every frame based on last decision
-    const cspd=cpuSpdMul[cpu.level]||4;
+    const cspd=(cpuSpdMul[cpu.level]||4)*dt;
     if(cpu.dir==='left')cpu.x=Math.max(15,cpu.x-cspd);
     else if(cpu.dir==='right')cpu.x=Math.min(W-15,cpu.x+cspd);
   });
@@ -1489,17 +1495,17 @@ function gameLoop(){
     const localObj=!isNonHost||obj.typeId==='wall';
     if(localObj){
       // Deflected by shield - fly away
-      if(obj.deflected){obj.x+=obj.deflectVx;obj.y+=obj.deflectVy;obj.deflectVy+=0.5;
-        obj.rotation=(obj.rotation||0)+(obj.rotSpeed||0);
+      if(obj.deflected){obj.x+=obj.deflectVx*dt;obj.y+=obj.deflectVy*dt;obj.deflectVy+=0.5*dt;
+        obj.rotation=(obj.rotation||0)+(obj.rotSpeed||0)*dt;
         if(obj.y>H+50||obj.x<-100||obj.x>W+100){GS.fallingObjects.splice(i,1);}continue;}
-      if(GS.reverse){obj.y-=obj.speed;}else{
-        if(obj.bounced){obj.y+=obj.bounceVy;obj.bounceVy+=0.5;if(obj.y>H+50){
+      if(GS.reverse){obj.y-=obj.speed*dt;}else{
+        if(obj.bounced){obj.y+=obj.bounceVy*dt;obj.bounceVy+=0.5*dt;if(obj.y>H+50){
           addScore(false,obj.bossPoints||0);GS.fallingObjects.splice(i,1);continue;}}
-        else if(obj.bigBounced){obj.y+=obj.bounceVy;obj.bounceVy+=0.4;}
-        else{obj.y+=obj.speed;}
+        else if(obj.bigBounced){obj.y+=obj.bounceVy*dt;obj.bounceVy+=0.4*dt;}
+        else{obj.y+=obj.speed*dt;}
       }
-      obj.rotation=(obj.rotation||0)+(obj.rotSpeed||0);
-      Weather.applyToObject(obj);
+      obj.rotation=(obj.rotation||0)+(obj.rotSpeed||0)*dt;
+      Weather.applyToObject(obj,dt);
       obj.x=Math.max(0,Math.min(W-obj.w,obj.x));
       // Ground collision - bounce
       if(!obj.bounced&&obj.y+obj.h>=groundY+10){
@@ -1525,15 +1531,15 @@ function gameLoop(){
       }
     } else {
       // Non-host: interpolate movement locally between Firebase updates
-      obj.y+=obj.speed;
-      obj.rotation=(obj.rotation||0)+(obj.rotSpeed||0);
+      obj.y+=obj.speed*dt;
+      obj.rotation=(obj.rotation||0)+(obj.rotSpeed||0)*dt;
       // Ground bounce (visual only)
       if(!obj.bounced&&obj.y+obj.h>=groundY+10){
         obj.bounced=true;obj.bounceVy=-obj.speed*0.3;
         spawnParticles(obj.x+obj.w/2,groundY,obj.color,8,4);
         if(obj.isBoss){GS.weatherShakeFrames=5;SoundMgr.playSE('hit');}
       }
-      if(obj.bounced){obj.y+=obj.bounceVy;obj.bounceVy+=0.5;}
+      if(obj.bounced){obj.y+=obj.bounceVy*dt;obj.bounceVy+=0.5*dt;}
       // Score when object passes off screen
       if(obj.y>H+50&&!obj._localScored){
         obj._localScored=true;
@@ -1565,7 +1571,7 @@ function gameLoop(){
   // Update power-ups
   for(let i=GS.powerUpItems.length-1;i>=0;i--){
     const pu=GS.powerUpItems[i];
-    pu.y+=pu.speed;
+    pu.y+=pu.speed*dt;
     if(pu.y>H){GS.powerUpItems.splice(i,1);continue;}
     if(GS.isMulti){
       // Multiplayer: host checks collision for ALL players (authoritative)
@@ -2219,7 +2225,7 @@ function resumeGame(){
   document.getElementById('pause-overlay').style.display='none';
   const pausedDur=Date.now()-pauseStart;
   GS.gameStartTime+=pausedDur;GS.stageStartTime+=pausedDur;
-  GS.gameActive=true;gameLoop();
+  GS.lastFrameTime=0;GS.gameActive=true;gameLoop();
 }
 function quitGame(){
   document.getElementById('pause-overlay').style.display='none';
@@ -2263,7 +2269,7 @@ function retrySameStage(){
   } else {hpEl.style.display='none';}
   SoundMgr.changeBGMForStage(stage);
   showCountdown(()=>{
-    GS.gameStartTime=Date.now();GS.stageStartTime=Date.now();GS.gameActive=true;
+    GS.gameStartTime=Date.now();GS.stageStartTime=Date.now();GS.lastFrameTime=0;GS.gameActive=true;
     Commentary.queue=[];Commentary.add('c_stage'.replace('{n}',stage),1);gameLoop();
   });
 }
@@ -2314,7 +2320,7 @@ function startSoloGame(){
   } else {hpEl.style.display='none';}
   SoundMgr.changeBGMForStage(1);
   showCountdown(()=>{
-    GS.gameStartTime=Date.now();GS.stageStartTime=Date.now();GS.gameActive=true;
+    GS.gameStartTime=Date.now();GS.stageStartTime=Date.now();GS.lastFrameTime=0;GS.gameActive=true;
     Commentary.queue=[];Commentary.add('c_start',1);gameLoop();
   });
 }
@@ -2331,7 +2337,7 @@ function startScoreAttack(){
   showScreen('game');setupCanvas();
   SoundMgr.changeBGMForStage(5);
   showCountdown(()=>{
-    GS.gameStartTime=Date.now();GS.stageStartTime=Date.now();GS.gameActive=true;
+    GS.gameStartTime=Date.now();GS.stageStartTime=Date.now();GS.lastFrameTime=0;GS.gameActive=true;
     Commentary.queue=[];Commentary.add('c_start',1);gameLoop();
   });
 }
@@ -2679,7 +2685,7 @@ function startMultiGame(){
   });
   showCountdown(()=>{
     GS.gameStartTime=Date.now();GS.stageStartTime=Date.now();GS.multiStageStartTime=Date.now();
-    GS.gameActive=true;_multiGameStarting=false;
+    GS.lastFrameTime=0;GS.gameActive=true;_multiGameStarting=false;
     Commentary.queue=[];Commentary.add('c_start',1);gameLoop();
   });
 }
@@ -3364,7 +3370,7 @@ const SecretStage = {
     const hpEl=document.getElementById('hud-players');hpEl.style.display='none';
     SoundMgr.changeBGMForStage(6);
     showCountdown(()=>{
-      GS.gameStartTime=Date.now();GS.stageStartTime=Date.now();GS.gameActive=true;
+      GS.gameStartTime=Date.now();GS.stageStartTime=Date.now();GS.lastFrameTime=0;GS.gameActive=true;
       Commentary.queue=[];Commentary.add(t('secret_stage_enter'),2);gameLoop();
     });
   },
