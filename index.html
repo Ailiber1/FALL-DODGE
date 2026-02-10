@@ -1896,15 +1896,7 @@ function endGame(hit,cleared){
     if(GS.players[GS.playerIndex])GS.players[GS.playerIndex].alive=false;
     if(GS.players[GS.playerIndex])GS.players[GS.playerIndex].score=GS.score;
     SyncLayer.reportDeath(GS.playerIndex,GS.score);
-    // Timed multi stages: enter spectator mode (game loop continues)
-    const isTimedStage=GS.multiStage<MULTI_STAGE.length-1;
-    if(isTimedStage){
-      // Don't stop game loop - spectate until stage ends or all dead
-      setTimeout(()=>checkMultiEnd(),500);
-      return;
-    }
-    // Final stage: stop game loop normally
-    GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);
+    // Check if match is already decided (e.g. individual 2-player: 1 dead = game over)
     setTimeout(()=>checkMultiEnd(),500);
     return;
   }
@@ -1912,26 +1904,32 @@ function endGame(hit,cleared){
   GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);
   setTimeout(()=>showResult(),500);
 }
-function checkMultiEnd(){
+// Check if the match is decisively over based on game mode
+function isMultiMatchDecided(){
   const alive=Object.entries(GS.players).filter(([k,v])=>v&&v.alive);
-  const isTimedStage=GS.multiStage<MULTI_STAGE.length-1;
-  if(isTimedStage){
-    // Timed stages: game over only if ALL players dead
-    if(alive.length===0){GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);showResult();}
-    return;// otherwise spectate
-  }
-  // Final stage: normal end conditions
-  let ended=false;
   if(GS.multiMode==='team'){
     const aliveTeams=new Set(alive.map(([idx])=>GS.teamAssign[parseInt(idx)]||'A'));
-    if(aliveTeams.size<=1)ended=true;
+    return aliveTeams.size<=1;
   } else if(GS.multiMode==='coop'){
-    if(alive.length===0)ended=true;
+    return alive.length===0;
   } else {
-    if(alive.length<=1)ended=true;
+    // Individual: decided when 1 or fewer alive
+    return alive.length<=1;
   }
-  if(ended)showResult();
-  else setTimeout(()=>checkMultiEnd(),1000);
+}
+function checkMultiEnd(){
+  const isTimedStage=GS.multiStage<MULTI_STAGE.length-1;
+  if(isMultiMatchDecided()){
+    // Match decided - end immediately regardless of stage type
+    GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);
+    showResult();
+    return;
+  }
+  if(isTimedStage){
+    return;// not decided yet - spectate until stage ends
+  }
+  // Final stage: keep checking
+  setTimeout(()=>checkMultiEnd(),1000);
 }
 
 let resultShown=false;
@@ -2578,21 +2576,7 @@ function startMultiGame(){
       const badge=document.getElementById('badge-'+idx);
       if(badge&&p&&!p.alive){badge.style.opacity='0.3';const teamTag=GS.multiMode==='team'?'['+(GS.teamAssign[parseInt(idx)]||'A')+'] ':'';badge.innerHTML='● '+teamTag+(p.username||PLAYER_COLORS[parseInt(idx)].name)+' ☠';}
     });
-    const alive=Object.entries(players).filter(([k,v])=>v&&v.alive);
-    const isTimedMultiStage=GS.multiStage<MULTI_STAGE.length-1;
-    let gameEnded=false;
-    if(isTimedMultiStage){
-      // Timed stages: only end if ALL players dead
-      if(alive.length===0)gameEnded=true;
-    } else if(GS.multiMode==='team'){
-      const aliveTeams=new Set(alive.map(([idx])=>GS.teamAssign[parseInt(idx)]||'A'));
-      if(aliveTeams.size<=1)gameEnded=true;
-    } else if(GS.multiMode==='coop'){
-      if(alive.length===0)gameEnded=true;
-    } else {
-      if(alive.length<=1)gameEnded=true;
-    }
-    if(gameEnded&&!resultShown){GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);setTimeout(()=>showResult(),500);}
+    if(isMultiMatchDecided()&&!resultShown){GS.gameActive=false;if(GS.animationId)cancelAnimationFrame(GS.animationId);setTimeout(()=>showResult(),500);}
   });
   showCountdown(()=>{
     GS.gameStartTime=Date.now();GS.stageStartTime=Date.now();GS.multiStageStartTime=Date.now();
