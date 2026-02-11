@@ -546,6 +546,7 @@ const GROUND_Y_RATIO = 0.88;
 let groundY;
 const isPC=window.matchMedia('(hover:hover) and (pointer:fine)').matches;
 const PC_CHAR_SCALE=isPC?1.7:1; // PC: larger characters for visibility
+console.log('[FALL-DODGE] isPC='+isPC+' touch='+('ontouchstart' in window)+' screen='+screen.width+'x'+screen.height);
 
 // ===== Matrix Background =====
 const MatrixBG = {
