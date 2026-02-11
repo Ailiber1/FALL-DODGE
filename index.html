@@ -1529,6 +1529,8 @@ function gameLoop(){
   });
   // Update difficulty
   updateDifficulty();
+  // Mobile difficulty reduction: smaller screen makes dodging harder
+  if(!isPC){GS.currentFallSpeed*=0.8;GS.currentSpawnInterval*=1.25;}
   // Spawn objects
   if(GS.isHost||!GS.isMulti){
     spawnFallingObject();
