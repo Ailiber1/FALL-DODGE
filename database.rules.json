@@ -1,0 +1,24 @@
+{
+  "rules": {
+    "rooms": {
+      ".read": true,
+      ".write": true
+    },
+    "rankings": {
+      ".read": true,
+      ".write": true
+    },
+    "users": {
+      ".read": true,
+      ".write": true
+    },
+    "meta": {
+      ".read": true,
+      ".write": true
+    },
+    "multiWins": {
+      ".read": true,
+      ".write": true
+    }
+  }
+}
