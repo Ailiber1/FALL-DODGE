@@ -1,24 +1,39 @@
 {
   "rules": {
     "rooms": {
-      ".read": true,
-      ".write": true
+      "$roomId": {
+        ".read": true,
+        ".write": true,
+        ".validate": "newData.val() != null"
+      }
     },
     "rankings": {
-      ".read": true,
-      ".write": true
+      "$category": {
+        ".read": true,
+        "$playerKey": {
+          ".write": true,
+          ".validate": "newData.hasChildren(['username', 'score']) && newData.child('username').isString() && newData.child('username').val().length <= 16 && newData.child('score').isNumber()"
+        }
+      }
     },
     "users": {
-      ".read": true,
-      ".write": true
+      "$username": {
+        ".read": true,
+        ".write": true,
+        ".validate": "newData.hasChildren(['deviceId']) && newData.child('deviceId').isString()"
+      }
     },
     "meta": {
       ".read": true,
-      ".write": true
+      ".write": true,
+      ".validate": "newData.val() != null"
     },
     "multiWins": {
       ".read": true,
-      ".write": true
+      "$playerKey": {
+        ".write": true,
+        ".validate": "newData.hasChildren(['username', 'wins']) && newData.child('username').isString() && newData.child('wins').isNumber()"
+      }
     }
   }
 }
